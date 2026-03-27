@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   LayoutDashboard, Package, Wand2, BarChart3, Megaphone, Settings, LogOut,
-  Zap, ChevronLeft, ChevronRight, Users, Bell
+  Zap, ChevronLeft, ChevronRight, Users, Bell, CalendarDays, Brain
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -9,6 +9,8 @@ const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", id: "dashboard" },
   { icon: Package, label: "Ofertas", id: "ofertas" },
   { icon: Wand2, label: "Gerar Conteúdo", id: "conteudo" },
+  { icon: CalendarDays, label: "Calendário", id: "calendario" },
+  { icon: Brain, label: "Mapeamento", id: "mapeamento" },
   { icon: Megaphone, label: "Campanhas", id: "campanhas" },
   { icon: BarChart3, label: "Analytics", id: "analytics" },
   { icon: Settings, label: "Configurações", id: "configuracoes" },

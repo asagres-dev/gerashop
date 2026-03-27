@@ -7,6 +7,8 @@ import ContentPage from "@/components/ContentPage";
 import CampaignsPage from "@/components/CampaignsPage";
 import AnalyticsPage from "@/components/AnalyticsPage";
 import SettingsPage from "@/components/SettingsPage";
+import CalendarPage from "@/components/CalendarPage";
+import NicheMappingPage from "@/components/NicheMappingPage";
 import { Offer } from "@/components/OffersPage";
 
 export default function Index() {
@@ -31,6 +33,8 @@ export default function Index() {
       case "dashboard": return <DashboardPage />;
       case "ofertas": return <OffersPage onGenerateContent={handleGenerateContent} />;
       case "conteudo": return <ContentPage preSelectedOffer={preSelectedOffer} />;
+      case "calendario": return <CalendarPage />;
+      case "mapeamento": return <NicheMappingPage />;
       case "campanhas": return <CampaignsPage />;
       case "analytics": return <AnalyticsPage />;
       case "configuracoes": return <SettingsPage />;
