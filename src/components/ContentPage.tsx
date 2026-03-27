@@ -107,6 +107,8 @@ interface ContentPageProps {
 }
 
 export default function ContentPage({ preSelectedOffer }: ContentPageProps) {
+  const { user } = useAuth();
+  const [offers, setOffers] = useState<Offer[]>([]);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(preSelectedOffer || null);
   const [contentType, setContentType] = useState<ContentType>("all");
   const [tone, setTone] = useState("Urgente");
@@ -118,6 +120,10 @@ export default function ContentPage({ preSelectedOffer }: ContentPageProps) {
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    dataService.getOffers(user?.id).then(setOffers);
+  }, [user]);
 
   const handleGenerate = () => {
     if (!selectedOffer) { toast({ title: "Selecione uma oferta", variant: "destructive" }); return; }
