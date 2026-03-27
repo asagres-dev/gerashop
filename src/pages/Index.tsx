@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import LoginPage from "@/components/LoginPage";
 import Sidebar from "@/components/Sidebar";
 import DashboardPage from "@/components/DashboardPage";
@@ -12,7 +13,7 @@ import NicheMappingPage from "@/components/NicheMappingPage";
 import { Offer } from "@/components/OffersPage";
 
 export default function Index() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { user, loading, signOut } = useAuth();
   const [activePage, setActivePage] = useState("dashboard");
   const [preSelectedOffer, setPreSelectedOffer] = useState<Offer | null>(null);
 
@@ -26,7 +27,17 @@ export default function Index() {
     if (page !== "conteudo") setPreSelectedOffer(null);
   };
 
-  if (!isLoggedIn) return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
+  if (loading) {
+    return (
+      <div className="min-h-screen gradient-hero flex items-center justify-center">
+        <div className="w-12 h-12 rounded-2xl gradient-primary animate-pulse-glow flex items-center justify-center">
+          <span className="text-white text-xl">⚡</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return <LoginPage />;
 
   const renderPage = () => {
     switch (activePage) {
@@ -44,7 +55,7 @@ export default function Index() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar activePage={activePage} onNavigate={handleNavigate} onLogout={() => setIsLoggedIn(false)} />
+      <Sidebar activePage={activePage} onNavigate={handleNavigate} onLogout={signOut} />
       <main className="flex-1 overflow-y-auto scrollbar-thin">
         {renderPage()}
       </main>

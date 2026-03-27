@@ -4,6 +4,8 @@ import {
   Zap, ChevronLeft, ChevronRight, Users, Bell, CalendarDays, Brain
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import DataStatus from "./DataStatus";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", id: "dashboard" },
@@ -23,6 +25,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activePage, onNavigate, onLogout }: SidebarProps) {
+  const { user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -73,14 +76,15 @@ export default function Sidebar({ activePage, onNavigate, onLogout }: SidebarPro
 
       {/* Bottom */}
       <div className="p-2 border-t border-border space-y-1">
+        {!collapsed && <div className="px-2 mb-2"><DataStatus /></div>}
         {!collapsed && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted mb-2">
             <div className="w-7 h-7 rounded-full gradient-primary flex items-center justify-center">
               <Users className="w-3.5 h-3.5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-foreground truncate">Admin</p>
-              <p className="text-xs text-muted-foreground truncate">admin@affiliateai.com</p>
+              <p className="text-xs font-medium text-foreground truncate">{user?.user_metadata?.name || "Usuário"}</p>
+              <p className="text-xs text-muted-foreground truncate">{user?.email || ""}</p>
             </div>
             <Bell className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
           </div>

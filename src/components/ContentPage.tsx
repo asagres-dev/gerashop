@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Wand2, Copy, Check, Instagram, MessageCircle, Film, Image as ImageIcon, Zap,
   ChevronDown, Sparkles, RefreshCw, Share2
@@ -8,13 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Offer } from "./OffersPage";
-
-const OFFERS_DEMO: Offer[] = [
-  { id: "1", name: "Perfume Essencial Natura EDP", platform: "Natura", category: "Perfumaria", originalPrice: 299.90, promoPrice: 189.90, link: "https://natura.com.br/p/123", imageUrl: "https://images.unsplash.com/photo-1541643600914-78b084683702?w=120&h=120&fit=crop", expiry: "2026-05-30", clicks: 842, commission: 28.50, status: "Ativa" },
-  { id: "2", name: "Echo Dot 5ª Geração", platform: "Amazon", category: "Eletrônicos", originalPrice: 399.00, promoPrice: 249.00, link: "https://amzn.to/abc", imageUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=120&h=120&fit=crop", expiry: "2026-04-20", clicks: 1247, commission: 12.45, status: "Ativa" },
-  { id: "3", name: "Kit Cuidados Boticário", platform: "Mercado Livre", category: "Beleza", originalPrice: 180.00, promoPrice: 99.90, link: "https://produto.ml.com.br/123", imageUrl: "https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=120&h=120&fit=crop", expiry: "2026-04-25", clicks: 523, commission: 9.99, status: "Ativa" },
-  { id: "4", name: "Tênis Nike Air Max 270", platform: "Shopee", category: "Moda", originalPrice: 650.00, promoPrice: 379.90, link: "https://shopee.com.br/p/456", imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=120&h=120&fit=crop", expiry: "2026-05-01", clicks: 2104, commission: 37.99, status: "Ativa" },
-];
+import { useAuth } from "@/contexts/AuthContext";
+import { dataService } from "@/lib/services/dataService";
 
 const platformConfig: Record<string, { emoji: string; gradient: string }> = {
   Natura: { emoji: "🌿", gradient: "from-emerald-500 to-teal-500" },
@@ -112,6 +107,8 @@ interface ContentPageProps {
 }
 
 export default function ContentPage({ preSelectedOffer }: ContentPageProps) {
+  const { user } = useAuth();
+  const [offers, setOffers] = useState<Offer[]>([]);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(preSelectedOffer || null);
   const [contentType, setContentType] = useState<ContentType>("all");
   const [tone, setTone] = useState("Urgente");
@@ -123,6 +120,10 @@ export default function ContentPage({ preSelectedOffer }: ContentPageProps) {
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    dataService.getOffers(user?.id).then(setOffers);
+  }, [user]);
 
   const handleGenerate = () => {
     if (!selectedOffer) { toast({ title: "Selecione uma oferta", variant: "destructive" }); return; }
@@ -164,11 +165,11 @@ export default function ContentPage({ preSelectedOffer }: ContentPageProps) {
             <div className="relative">
               <select
                 value={selectedOffer?.id || ""}
-                onChange={(e) => setSelectedOffer(OFFERS_DEMO.find((o) => o.id === e.target.value) || null)}
+                onChange={(e) => setSelectedOffer(offers.find((o) => o.id === e.target.value) || null)}
                 className="w-full bg-muted border border-border text-foreground text-sm rounded-xl px-4 pr-9 py-2.5 focus:outline-none focus:border-primary cursor-pointer appearance-none"
               >
                 <option value="">Selecione uma oferta...</option>
-                {OFFERS_DEMO.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                {offers.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
             </div>

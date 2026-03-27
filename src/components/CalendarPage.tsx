@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   CalendarDays, Plus, ChevronLeft, ChevronRight, Clock, Instagram,
   MessageCircle, Film, Image as ImageIcon, Check, X, Edit2, Trash2, Filter
@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { dataService } from "@/lib/services/dataService";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from "@/components/ui/dialog";
@@ -72,13 +74,20 @@ const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Jul
 const WEEKDAYS = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 
 export default function CalendarPage() {
+  const { user } = useAuth();
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [posts, setPosts] = useState<ScheduledPost[]>(DEMO_POSTS);
+  const [posts, setPosts] = useState<ScheduledPost[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [filterChannel, setFilterChannel] = useState<Channel | "all">("all");
   const [filterStatus, setFilterStatus] = useState<PostStatus | "all">("all");
   const { toast } = useToast();
+
+  useEffect(() => {
+    dataService.getScheduledPosts(user?.id).then((data) => {
+      setPosts(data.map((p: any) => ({ ...p, date: new Date(p.date) })));
+    });
+  }, [user]);
 
   // New post form
   const [newPost, setNewPost] = useState({
@@ -112,7 +121,7 @@ export default function CalendarPage() {
 
   const getPostsForDay = (day: Date) => filteredPosts.filter(p => isSameDay(p.date, day));
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!newPost.offerName || !newPost.date) {
       toast({ title: "Preencha os campos obrigatórios", variant: "destructive" });
       return;
@@ -129,13 +138,17 @@ export default function CalendarPage() {
       platform: newPost.platform,
     };
     setPosts(prev => [...prev, post]);
+    if (user) {
+      await dataService.createScheduledPost(post, user.id).catch(() => {});
+    }
     setShowModal(false);
     setNewPost({ offerName: "", contentType: "Feed", channel: "Instagram", date: "", time: "19:30", caption: "", platform: "Natura" });
     toast({ title: "Post agendado!", description: `${post.offerName} — ${post.date.toLocaleDateString("pt-BR")} às ${post.time}` });
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     setPosts(prev => prev.filter(p => p.id !== id));
+    await dataService.deleteScheduledPost(id).catch(() => {});
     toast({ title: "Agendamento removido" });
   };
 
