@@ -1,4 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
+
+// Use any-casted client since types.ts is auto-generated and may lag behind migrations
+const db = supabase as any;
 import { mockOffers, mockScheduledPosts } from "@/lib/mocks";
 import { Offer } from "@/components/OffersPage";
 
