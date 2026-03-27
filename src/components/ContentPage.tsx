@@ -169,7 +169,7 @@ export default function ContentPage({ preSelectedOffer }: ContentPageProps) {
                 className="w-full bg-muted border border-border text-foreground text-sm rounded-xl px-4 pr-9 py-2.5 focus:outline-none focus:border-primary cursor-pointer appearance-none"
               >
                 <option value="">Selecione uma oferta...</option>
-                {OFFERS_DEMO.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                {offers.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
             </div>
