@@ -165,7 +165,7 @@ export default function ContentPage({ preSelectedOffer }: ContentPageProps) {
             <div className="relative">
               <select
                 value={selectedOffer?.id || ""}
-                onChange={(e) => setSelectedOffer(OFFERS_DEMO.find((o) => o.id === e.target.value) || null)}
+                onChange={(e) => setSelectedOffer(offers.find((o) => o.id === e.target.value) || null)}
                 className="w-full bg-muted border border-border text-foreground text-sm rounded-xl px-4 pr-9 py-2.5 focus:outline-none focus:border-primary cursor-pointer appearance-none"
               >
                 <option value="">Selecione uma oferta...</option>
