@@ -124,7 +124,7 @@ export default function CalendarPage() {
 
   const getPostsForDay = (day: Date) => filteredPosts.filter(p => isSameDay(p.date, day));
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!newPost.offerName || !newPost.date) {
       toast({ title: "Preencha os campos obrigatórios", variant: "destructive" });
       return;
@@ -141,13 +141,17 @@ export default function CalendarPage() {
       platform: newPost.platform,
     };
     setPosts(prev => [...prev, post]);
+    if (user) {
+      await dataService.createScheduledPost(post, user.id).catch(() => {});
+    }
     setShowModal(false);
     setNewPost({ offerName: "", contentType: "Feed", channel: "Instagram", date: "", time: "19:30", caption: "", platform: "Natura" });
     toast({ title: "Post agendado!", description: `${post.offerName} — ${post.date.toLocaleDateString("pt-BR")} às ${post.time}` });
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     setPosts(prev => prev.filter(p => p.id !== id));
+    await dataService.deleteScheduledPost(id).catch(() => {});
     toast({ title: "Agendamento removido" });
   };
 
