@@ -82,8 +82,8 @@ export default function Sidebar({ activePage, onNavigate, onLogout }: SidebarPro
               <Users className="w-3.5 h-3.5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-foreground truncate">Admin</p>
-              <p className="text-xs text-muted-foreground truncate">admin@affiliateai.com</p>
+              <p className="text-xs font-medium text-foreground truncate">{user?.user_metadata?.name || "Usuário"}</p>
+              <p className="text-xs text-muted-foreground truncate">{user?.email || ""}</p>
             </div>
             <Bell className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
           </div>
