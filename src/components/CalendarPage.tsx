@@ -77,13 +77,20 @@ const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Jul
 const WEEKDAYS = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 
 export default function CalendarPage() {
+  const { user } = useAuth();
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [posts, setPosts] = useState<ScheduledPost[]>(DEMO_POSTS);
+  const [posts, setPosts] = useState<ScheduledPost[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [filterChannel, setFilterChannel] = useState<Channel | "all">("all");
   const [filterStatus, setFilterStatus] = useState<PostStatus | "all">("all");
   const { toast } = useToast();
+
+  useEffect(() => {
+    dataService.getScheduledPosts(user?.id).then((data) => {
+      setPosts(data.map((p: any) => ({ ...p, date: new Date(p.date) })));
+    });
+  }, [user]);
 
   // New post form
   const [newPost, setNewPost] = useState({
