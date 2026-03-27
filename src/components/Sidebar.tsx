@@ -25,6 +25,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activePage, onNavigate, onLogout }: SidebarProps) {
+  const { user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
 
   return (
