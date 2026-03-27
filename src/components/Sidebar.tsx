@@ -76,6 +76,7 @@ export default function Sidebar({ activePage, onNavigate, onLogout }: SidebarPro
 
       {/* Bottom */}
       <div className="p-2 border-t border-border space-y-1">
+        {!collapsed && <div className="px-2 mb-2"><DataStatus /></div>}
         {!collapsed && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted mb-2">
             <div className="w-7 h-7 rounded-full gradient-primary flex items-center justify-center">
