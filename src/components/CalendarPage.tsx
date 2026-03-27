@@ -14,9 +14,6 @@ import { dataService } from "@/lib/services/dataService";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from "@/components/ui/dialog";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
-} from "@/components/ui/dialog";
 
 type ViewMode = "month" | "week";
 type PostStatus = "scheduled" | "published" | "failed" | "draft";
