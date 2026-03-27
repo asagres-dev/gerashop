@@ -4,6 +4,8 @@ import {
   Zap, ChevronLeft, ChevronRight, Users, Bell, CalendarDays, Brain
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import DataStatus from "./DataStatus";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", id: "dashboard" },
