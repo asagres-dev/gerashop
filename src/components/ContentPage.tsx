@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Wand2, Copy, Check, Instagram, MessageCircle, Film, Image as ImageIcon, Zap,
-  ChevronDown, Sparkles, RefreshCw, Share2
+  ChevronDown, Sparkles, RefreshCw, Share2, Save, Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,15 +34,6 @@ function generateContent(offer: Offer, tone: string, trigger: string, persona: s
   const discount = Math.round(((offer.originalPrice - offer.promoPrice) / offer.originalPrice) * 100);
   const saving = (offer.originalPrice - offer.promoPrice).toFixed(2);
   const pc = platformConfig[offer.platform] || platformConfig.Amazon;
-
-  const toneMap: Record<string, string> = {
-    Sofisticado: "elegante e sofisticado",
-    Descontraído: "descontraído e amigável",
-    Urgente: "urgente e impactante",
-    Divertido: "divertido e animado",
-    Inspirador: "inspirador e motivacional",
-  };
-
   const campaignTag = campaign !== "Nenhuma" ? ` | ${campaign}` : "";
 
   return {
@@ -53,33 +44,13 @@ function generateContent(offer: Offer, tone: string, trigger: string, persona: s
       `💥 Economize R$${saving} em ${offer.name}${campaignTag}`,
     ],
     captions: [
-      {
-        text: `✨ ${offer.name}\n💰 De R$${offer.originalPrice.toFixed(2)} por apenas R$${offer.promoPrice.toFixed(2)}\n🎯 ${discount}% de desconto — economia de R$${saving}!\n🔗 Link na bio!\n\n#${offer.platform.replace(" ", "")} #oferta #desconto`,
-        type: "urgencia",
-      },
-      {
-        text: `🛍️ Atenção, caçadores de oferta! ${offer.name} nunca esteve tão barato!\n⬇️ ${discount}% OFF = R$${offer.promoPrice.toFixed(2)}\n⏰ Promoção por tempo limitado!\n👇 Link na bio`,
-        type: "escassez",
-      },
-      {
-        text: `❤️ ${offer.name} chegou com tudo!\nPreço de R$${offer.originalPrice.toFixed(2)} caiu para R$${offer.promoPrice.toFixed(2)} (${discount}% OFF)\nAproveite enquanto dura! Link na bio 👆`,
-        type: "emocional",
-      },
+      { text: `✨ ${offer.name}\n💰 De R$${offer.originalPrice.toFixed(2)} por apenas R$${offer.promoPrice.toFixed(2)}\n🎯 ${discount}% de desconto — economia de R$${saving}!\n🔗 Link na bio!\n\n#${offer.platform.replace(" ", "")} #oferta #desconto`, type: "urgencia" },
+      { text: `🛍️ Atenção, caçadores de oferta! ${offer.name} nunca esteve tão barato!\n⬇️ ${discount}% OFF = R$${offer.promoPrice.toFixed(2)}\n⏰ Promoção por tempo limitado!\n👇 Link na bio`, type: "escassez" },
+      { text: `❤️ ${offer.name} chegou com tudo!\nPreço de R$${offer.originalPrice.toFixed(2)} caiu para R$${offer.promoPrice.toFixed(2)} (${discount}% OFF)\nAproveite enquanto dura! Link na bio 👆`, type: "emocional" },
     ],
     hashtags: {
       broad: ["#oferta", "#desconto", "#promoção", "#compras", "#deal", "#sale", "#economize", "#imperdível", "#melhorpreço", "#cupom"],
-      specific: [
-        `#${offer.platform.replace(" ", "").toLowerCase()}`,
-        `#${offer.category.toLowerCase()}`,
-        "#ofertas2026",
-        "#descontão",
-        "#fretegratis",
-        "#afiliado",
-        "#comprasonline",
-        `#${offer.platform.toLowerCase()}brasil`,
-        "#blackfriday",
-        "#hotmart",
-      ],
+      specific: [`#${offer.platform.replace(" ", "").toLowerCase()}`, `#${offer.category.toLowerCase()}`, "#ofertas2026", "#descontão", "#fretegratis", "#afiliado", "#comprasonline", `#${offer.platform.toLowerCase()}brasil`, "#blackfriday", "#hotmart"],
     },
     whatsapp: {
       message: `${pc.emoji} *OFERTA IMPERDÍVEL!* ${pc.emoji}\n\n*${offer.name}*\n💰 De ~~R$${offer.originalPrice.toFixed(2)}~~ por *R$${offer.promoPrice.toFixed(2)}*\n📉 *${discount}% OFF* — Economia de R$${saving}!\n\n🛒 Compre agora: ${offer.link}\n\n⚠️ _Promoção por tempo limitado!_`,
@@ -119,10 +90,12 @@ export default function ContentPage({ preSelectedOffer }: ContentPageProps) {
   const [generated, setGenerated] = useState<GeneratedContent | null>(null);
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    dataService.getOffers(user?.id).then(setOffers);
+    if (user) dataService.getOffers(user.id).then(setOffers).catch(() => {});
   }, [user]);
 
   const handleGenerate = () => {
@@ -132,6 +105,27 @@ export default function ContentPage({ preSelectedOffer }: ContentPageProps) {
       setGenerated(generateContent(selectedOffer, tone, trigger, persona, campaign));
       setGenerating(false);
     }, 1800);
+  };
+
+  const handleSaveContent = async () => {
+    if (!generated || !selectedOffer || !user) return;
+    setSaving(true);
+    try {
+      await dataService.saveContent({
+        offer_id: selectedOffer.id,
+        type: contentType === "all" ? "FEED" : contentType.toUpperCase(),
+        format: "TEXT",
+        text: generated.captions[0]?.text || "",
+        hashtags: [...generated.hashtags.broad, ...generated.hashtags.specific],
+        tone_of_voice: tone,
+        cta: generated.stories.cta,
+      }, user.id);
+      toast({ title: "Conteúdo salvo!", description: "O conteúdo foi salvo no banco de dados." });
+    } catch (err: any) {
+      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const copyText = (text: string, id: string) => {
@@ -159,23 +153,25 @@ export default function ContentPage({ preSelectedOffer }: ContentPageProps) {
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
         {/* Config Panel */}
         <div className="xl:col-span-2 space-y-4">
-          {/* Offer Selection */}
           <div className="rounded-2xl border border-border p-5 shadow-card" style={{ background: "hsl(var(--card))" }}>
             <h3 className="font-display font-semibold text-foreground mb-3 text-sm">1. Selecionar Oferta</h3>
             <div className="relative">
-              <select
-                value={selectedOffer?.id || ""}
-                onChange={(e) => setSelectedOffer(offers.find((o) => o.id === e.target.value) || null)}
-                className="w-full bg-muted border border-border text-foreground text-sm rounded-xl px-4 pr-9 py-2.5 focus:outline-none focus:border-primary cursor-pointer appearance-none"
-              >
+              <select value={selectedOffer?.id || ""} onChange={(e) => setSelectedOffer(offers.find((o) => o.id === e.target.value) || null)} className="w-full bg-muted border border-border text-foreground text-sm rounded-xl px-4 pr-9 py-2.5 focus:outline-none focus:border-primary cursor-pointer appearance-none">
                 <option value="">Selecione uma oferta...</option>
                 {offers.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
             </div>
+            {offers.length === 0 && (
+              <p className="text-xs text-muted-foreground mt-2">Nenhuma oferta cadastrada. Crie uma oferta primeiro.</p>
+            )}
             {selectedOffer && (
               <div className="mt-3 flex items-center gap-3 p-3 rounded-xl bg-muted">
-                <img src={selectedOffer.imageUrl} alt={selectedOffer.name} className="w-12 h-12 rounded-lg object-cover" />
+                {selectedOffer.imageUrl ? (
+                  <img src={selectedOffer.imageUrl} alt={selectedOffer.name} className="w-12 h-12 rounded-lg object-cover" />
+                ) : (
+                  <div className="w-12 h-12 rounded-lg bg-card flex items-center justify-center"><ImageIcon className="w-5 h-5 text-muted-foreground" /></div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{selectedOffer.name}</p>
                   <p className="text-xs text-success font-semibold">R${selectedOffer.promoPrice.toFixed(2)} — {discount}% OFF</p>
@@ -184,7 +180,6 @@ export default function ContentPage({ preSelectedOffer }: ContentPageProps) {
             )}
           </div>
 
-          {/* Format Buttons */}
           <div className="rounded-2xl border border-border p-5 shadow-card" style={{ background: "hsl(var(--card))" }}>
             <h3 className="font-display font-semibold text-foreground mb-3 text-sm">2. Formato de Conteúdo</h3>
             <div className="grid grid-cols-2 gap-2">
@@ -198,15 +193,7 @@ export default function ContentPage({ preSelectedOffer }: ContentPageProps) {
                 const Icon = f.icon;
                 const active = contentType === f.id;
                 return (
-                  <button
-                    key={f.id}
-                    onClick={() => setContentType(f.id as ContentType)}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all border",
-                      f.id === "all" ? "col-span-2" : "",
-                      active ? `bg-gradient-to-r ${f.color} text-white border-transparent shadow-glow` : "bg-muted text-muted-foreground border-border hover:bg-card hover:text-foreground"
-                    )}
-                  >
+                  <button key={f.id} onClick={() => setContentType(f.id as ContentType)} className={cn("flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all border", f.id === "all" ? "col-span-2" : "", active ? `bg-gradient-to-r ${f.color} text-white border-transparent shadow-glow` : "bg-muted text-muted-foreground border-border hover:bg-card hover:text-foreground")}>
                     <Icon className="w-3.5 h-3.5" /> {f.label}
                   </button>
                 );
@@ -214,7 +201,6 @@ export default function ContentPage({ preSelectedOffer }: ContentPageProps) {
             </div>
           </div>
 
-          {/* Advanced Config */}
           <div className="rounded-2xl border border-border p-5 shadow-card" style={{ background: "hsl(var(--card))" }}>
             <h3 className="font-display font-semibold text-foreground mb-3 text-sm">3. Configurações Avançadas</h3>
             <div className="space-y-3">
@@ -241,16 +227,8 @@ export default function ContentPage({ preSelectedOffer }: ContentPageProps) {
             </div>
           </div>
 
-          <Button
-            onClick={handleGenerate}
-            disabled={generating || !selectedOffer}
-            className="w-full h-12 gradient-primary text-white border-0 shadow-glow hover:opacity-90 font-semibold text-base"
-          >
-            {generating ? (
-              <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Gerando com IA...</>
-            ) : (
-              <><Sparkles className="w-4 h-4 mr-2" /> Gerar Conteúdo</>
-            )}
+          <Button onClick={handleGenerate} disabled={generating || !selectedOffer} className="w-full h-12 gradient-primary text-white border-0 shadow-glow hover:opacity-90 font-semibold text-base">
+            {generating ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Gerando com IA...</> : <><Sparkles className="w-4 h-4 mr-2" /> Gerar Conteúdo</>}
           </Button>
         </div>
 
@@ -276,6 +254,41 @@ export default function ContentPage({ preSelectedOffer }: ContentPageProps) {
 
           {generated && !generating && (
             <div className="space-y-4">
+              {/* Action Bar */}
+              <div className="flex items-center gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)}>
+                  <Eye className="w-3.5 h-3.5 mr-1" /> {showPreview ? "Ocultar Preview" : "Preview"}
+                </Button>
+                <Button size="sm" onClick={handleSaveContent} disabled={saving} className="gradient-primary text-white border-0">
+                  <Save className="w-3.5 h-3.5 mr-1" /> {saving ? "Salvando..." : "Salvar"}
+                </Button>
+              </div>
+
+              {/* Instagram Preview */}
+              {showPreview && selectedOffer && (
+                <div className="rounded-2xl border border-border p-5 shadow-card" style={{ background: "hsl(var(--card))" }}>
+                  <h4 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2 text-sm">
+                    <Eye className="w-4 h-4 text-primary" /> Preview da Publicação
+                  </h4>
+                  <div className="max-w-sm mx-auto rounded-xl border border-border overflow-hidden bg-background">
+                    <div className="flex items-center gap-2 p-3 border-b border-border">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-xs font-bold">A</div>
+                      <div><p className="text-xs font-semibold text-foreground">AffiliateAI Pro</p><p className="text-[10px] text-muted-foreground">Patrocinado</p></div>
+                    </div>
+                    {selectedOffer.imageUrl ? (
+                      <img src={selectedOffer.imageUrl} alt={selectedOffer.name} className="w-full aspect-square object-cover" />
+                    ) : (
+                      <div className="w-full aspect-square bg-muted flex items-center justify-center"><ImageIcon className="w-12 h-12 text-muted-foreground/30" /></div>
+                    )}
+                    <div className="p-3">
+                      <div className="flex gap-3 mb-2"><span>❤️</span><span>💬</span><span>📤</span></div>
+                      <p className="text-xs text-foreground whitespace-pre-wrap line-clamp-4">{generated.captions[0]?.text}</p>
+                      <p className="text-[10px] text-primary mt-1">{generated.hashtags.broad.slice(0, 5).join(" ")}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Titles */}
               <div className="rounded-2xl border border-border p-5 shadow-card" style={{ background: "hsl(var(--card))" }}>
                 <h4 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2 text-sm">
