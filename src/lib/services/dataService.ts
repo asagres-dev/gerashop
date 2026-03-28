@@ -1,8 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
-import { mockOffers, mockScheduledPosts } from "@/lib/mocks";
 import { Offer } from "@/components/OffersPage";
 
-// Use any-casted client since types.ts is auto-generated and may lag behind migrations
 const db = supabase as any;
 
 function dbToOffer(row: any): Offer {
@@ -14,8 +12,8 @@ function dbToOffer(row: any): Offer {
     originalPrice: Number(row.original_price),
     promoPrice: Number(row.promotional_price),
     link: row.affiliate_link,
-    imageUrl: row.image_url || "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=120&h=120&fit=crop",
-    expiry: row.expiration_date ? new Date(row.expiration_date).toISOString().split("T")[0] : "2026-12-31",
+    imageUrl: row.image_url || "",
+    expiry: row.expiration_date ? new Date(row.expiration_date).toISOString().split("T")[0] : "",
     clicks: row.clicks || 0,
     commission: Number(row.commission) || 0,
     status: row.status === "ACTIVE" ? "Ativa" : row.status === "EXPIRED" ? "Expirada" : "Agendada",
@@ -40,93 +38,168 @@ function offerToDb(offer: Partial<Offer>, userId: string) {
   };
 }
 
+export interface OfferFilters {
+  platform?: string;
+  status?: string;
+  search?: string;
+}
+
 class DataService {
   private static instance: DataService;
-  private _isReady = false;
-  private _checked = false;
 
   static getInstance() {
     if (!DataService.instance) DataService.instance = new DataService();
     return DataService.instance;
   }
 
-  async checkConnection(): Promise<boolean> {
-    if (this._checked) return this._isReady;
-    try {
-      const { error } = await db.from("offers").select("id").limit(1);
-      this._isReady = !error;
-    } catch {
-      this._isReady = false;
-    }
-    this._checked = true;
-    return this._isReady;
+  // ============ OFERTAS ============
+  async getOffers(userId?: string, filters?: OfferFilters): Promise<Offer[]> {
+    if (!userId) return [];
+    let query = db.from("offers").select("*").order("created_at", { ascending: false });
+    if (filters?.platform) query = query.eq("platform", filters.platform);
+    if (filters?.status) query = query.eq("status", filters.status);
+    if (filters?.search) query = query.ilike("name", `%${filters.search}%`);
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []).map(dbToOffer);
   }
 
-  get isReady() { return this._isReady; }
-
-  async getOffers(userId?: string): Promise<Offer[]> {
-    if (!(await this.checkConnection()) || !userId) return mockOffers;
-    const { data, error } = await db.from("offers").select("*").order("created_at", { ascending: false });
-    if (error || !data?.length) return mockOffers;
-    return data.map(dbToOffer);
+  async getOfferById(id: string): Promise<Offer | null> {
+    const { data, error } = await db.from("offers").select("*").eq("id", id).single();
+    if (error) return null;
+    return dbToOffer(data);
   }
 
   async createOffer(offer: Partial<Offer>, userId: string): Promise<Offer> {
-    if (!this._isReady) return { ...offer, id: `mock_${Date.now()}` } as Offer;
     const { data, error } = await db.from("offers").insert([offerToDb(offer, userId)]).select().single();
     if (error) throw error;
     return dbToOffer(data);
   }
 
+  async updateOffer(id: string, updates: Record<string, any>): Promise<Offer> {
+    const { data, error } = await db.from("offers").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", id).select().single();
+    if (error) throw error;
+    return dbToOffer(data);
+  }
+
   async deleteOffer(id: string): Promise<void> {
-    if (!this._isReady) return;
-    await db.from("offers").delete().eq("id", id);
+    const { error } = await db.from("offers").delete().eq("id", id);
+    if (error) throw error;
   }
 
-  async getScheduledPosts(userId?: string) {
-    if (!(await this.checkConnection()) || !userId) return mockScheduledPosts;
-    const { data, error } = await db.from("scheduled_posts").select("*").order("scheduled_date", { ascending: true });
-    if (error || !data?.length) return mockScheduledPosts;
-    return data.map((row: any) => ({
-      id: row.id, offerName: row.offer_name || "", contentType: row.content_type || "Feed",
-      channel: row.channel, date: new Date(row.scheduled_date), time: row.scheduled_time || "19:00",
-      status: row.status?.toLowerCase() || "scheduled", caption: row.caption, platform: row.platform || "",
-    }));
+  // ============ CONTEÚDOS ============
+  async getContentsByOffer(offerId: string) {
+    const { data, error } = await db.from("contents").select("*").eq("offer_id", offerId).order("version", { ascending: false });
+    if (error) throw error;
+    return data || [];
   }
 
-  async createScheduledPost(post: any, userId: string) {
-    if (!this._isReady) return { ...post, id: `mock_${Date.now()}` };
-    const { data, error } = await db.from("scheduled_posts").insert([{
-      offer_name: post.offerName, content_type: post.contentType, channel: post.channel,
-      scheduled_date: new Date(post.date).toISOString(), scheduled_time: post.time,
-      status: "SCHEDULED", caption: post.caption, platform: post.platform, user_id: userId,
+  async saveContent(content: any, userId: string) {
+    const { data, error } = await db.from("contents").insert([{
+      offer_id: content.offerId || content.offer_id || null,
+      type: content.type,
+      format: content.format || "TEXT",
+      text: content.text,
+      hashtags: content.hashtags || [],
+      tone_of_voice: content.tone || content.tone_of_voice,
+      cta: content.cta || null,
+      user_id: userId,
     }]).select().single();
     if (error) throw error;
     return data;
   }
 
+  // ============ AGENDAMENTOS ============
+  async getScheduledPosts(userId?: string) {
+    if (!userId) return [];
+    const { data, error } = await db.from("scheduled_posts").select("*").order("scheduled_date", { ascending: true });
+    if (error) throw error;
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      offerName: row.offer_name || "",
+      contentType: row.content_type || "Feed",
+      channel: row.channel,
+      date: new Date(row.scheduled_date),
+      time: row.scheduled_time || "19:00",
+      status: row.status?.toLowerCase() || "scheduled",
+      caption: row.caption,
+      platform: row.platform || "",
+    }));
+  }
+
+  async createScheduledPost(post: any, userId: string) {
+    const { data, error } = await db.from("scheduled_posts").insert([{
+      offer_name: post.offerName,
+      content_type: post.contentType,
+      channel: post.channel,
+      scheduled_date: new Date(post.date).toISOString(),
+      scheduled_time: post.time,
+      status: "SCHEDULED",
+      caption: post.caption,
+      platform: post.platform,
+      user_id: userId,
+    }]).select().single();
+    if (error) throw error;
+    return data;
+  }
+
+  async updateScheduledPost(id: string, updates: Record<string, any>) {
+    const { data, error } = await db.from("scheduled_posts").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", id).select().single();
+    if (error) throw error;
+    return data;
+  }
+
   async deleteScheduledPost(id: string) {
-    if (!this._isReady) return;
-    await db.from("scheduled_posts").delete().eq("id", id);
+    const { error } = await db.from("scheduled_posts").delete().eq("id", id);
+    if (error) throw error;
   }
 
-  async saveContent(content: any, userId: string) {
-    if (!this._isReady) return;
-    await db.from("contents").insert([{
-      offer_id: content.offerId || null, type: content.type, format: content.format || "TEXT",
-      text: content.text, hashtags: content.hashtags || [], tone_of_voice: content.tone, user_id: userId,
-    }]);
+  // ============ SYNC MANUAL ============
+  async syncOfferManually(id: string, externalData: any): Promise<Offer> {
+    return this.updateOffer(id, {
+      promotional_price: externalData.preco_promocional,
+      original_price: externalData.preco_original,
+      stock: externalData.estoque,
+      last_sync: new Date().toISOString(),
+    });
   }
 
+  // ============ CONFIGURAÇÕES ============
   async getUserSettings(userId: string) {
-    if (!this._isReady) return null;
     const { data } = await db.from("user_settings").select("*").eq("user_id", userId).single();
     return data;
   }
 
   async updateUserSettings(userId: string, updates: any) {
-    if (!this._isReady) return;
     await db.from("user_settings").update({ ...updates, updated_at: new Date().toISOString() }).eq("user_id", userId);
+  }
+
+  // ============ ANALYTICS ============
+  async getAnalytics(userId: string, startDate?: string, endDate?: string) {
+    let query = db.from("analytics").select("*").eq("user_id", userId);
+    if (startDate) query = query.gte("date", startDate);
+    if (endDate) query = query.lte("date", endDate);
+    const { data, error } = await query.order("date", { ascending: true });
+    if (error) throw error;
+    return data || [];
+  }
+
+  // ============ IMAGE UPLOAD ============
+  async uploadOfferImage(userId: string, file: File, offerId: string): Promise<string> {
+    const fileExt = file.name.split(".").pop() || "jpg";
+    const filePath = `${userId}/${offerId}_${Date.now()}.${fileExt}`;
+    const { error } = await supabase.storage.from("offer-images").upload(filePath, file, { cacheControl: "3600", upsert: true });
+    if (error) throw error;
+    const { data: { publicUrl } } = supabase.storage.from("offer-images").getPublicUrl(filePath);
+    return publicUrl;
+  }
+
+  async importImageFromUrl(userId: string, imageUrl: string, offerId: string): Promise<string> {
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+    const fileExt = imageUrl.split(".").pop()?.split("?")[0] || "jpg";
+    const file = new File([blob], `${offerId}.${fileExt}`, { type: blob.type });
+    return this.uploadOfferImage(userId, file, offerId);
   }
 }
 

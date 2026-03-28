@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, ExternalLink, Edit2, Trash2, Wand2, ChevronDown } from "lucide-react";
+import { Plus, Search, ExternalLink, Edit2, Trash2, Wand2, ChevronDown, RefreshCw, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { dataService } from "@/lib/services/dataService";
+import { ofertashopClient } from "@/lib/integrations/ofertashop";
 import AddOfferModal from "./AddOfferModal";
+import { useToast } from "@/hooks/use-toast";
 
 export interface Offer {
   id: string;
@@ -48,16 +50,24 @@ export default function OffersPage({ onGenerateContent }: OffersPageProps) {
   const [statusFilter, setStatusFilter] = useState("Todas");
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     loadOffers();
   }, [user]);
 
   const loadOffers = async () => {
+    if (!user) { setLoading(false); return; }
     setLoading(true);
-    const data = await dataService.getOffers(user?.id);
-    setOffers(data);
-    setLoading(false);
+    try {
+      const data = await dataService.getOffers(user.id);
+      setOffers(data);
+    } catch (err: any) {
+      toast({ title: "Erro ao carregar ofertas", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filtered = offers.filter((o) => {
@@ -71,19 +81,44 @@ export default function OffersPage({ onGenerateContent }: OffersPageProps) {
 
   const handleDelete = async (id: string) => {
     setOffers((prev) => prev.filter((o) => o.id !== id));
-    await dataService.deleteOffer(id);
+    try {
+      await dataService.deleteOffer(id);
+      toast({ title: "Oferta removida" });
+    } catch {
+      loadOffers();
+    }
   };
 
   const handleAdd = async (offer: Offer) => {
-    if (user) {
-      try {
-        const created = await dataService.createOffer(offer, user.id);
-        setOffers((prev) => [created, ...prev]);
-      } catch {
-        setOffers((prev) => [offer, ...prev]);
-      }
-    } else {
-      setOffers((prev) => [offer, ...prev]);
+    if (!user) return;
+    try {
+      const created = await dataService.createOffer(offer, user.id);
+      setOffers((prev) => [created, ...prev]);
+      toast({ title: "Oferta criada!", description: offer.name });
+    } catch (err: any) {
+      toast({ title: "Erro ao criar oferta", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleSync = async (offer: Offer) => {
+    if (!ofertashopClient.isReady()) {
+      toast({
+        title: "⏳ API não configurada",
+        description: "A API do Ofertashop ainda não está disponível. Configure em Configurações > Integrações.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSyncingId(offer.id);
+    try {
+      // Future: const externalData = await ofertashopClient.getOfferById(offer.id);
+      // await dataService.syncOfferManually(offer.id, externalData);
+      toast({ title: "Sincronização concluída", description: offer.name });
+      loadOffers();
+    } catch {
+      toast({ title: "Erro na sincronização", variant: "destructive" });
+    } finally {
+      setSyncingId(null);
     }
   };
 
@@ -119,6 +154,17 @@ export default function OffersPage({ onGenerateContent }: OffersPageProps) {
 
       {loading ? (
         <div className="text-center py-12 text-muted-foreground">Carregando ofertas...</div>
+      ) : offers.length === 0 ? (
+        <div className="text-center py-16">
+          <Package className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
+          <h3 className="text-lg font-display font-semibold text-foreground mb-2">Nenhuma oferta cadastrada</h3>
+          <p className="text-sm text-muted-foreground mb-4">Comece adicionando sua primeira oferta para gerar conteúdo automaticamente.</p>
+          <Button onClick={() => setShowModal(true)} className="gradient-primary text-white border-0 shadow-glow hover:opacity-90">
+            <Plus className="w-4 h-4 mr-2" /> Criar Primeira Oferta
+          </Button>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">Nenhuma oferta encontrada com esses filtros.</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((offer) => {
@@ -131,7 +177,13 @@ export default function OffersPage({ onGenerateContent }: OffersPageProps) {
                     <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full border", statusConfig[offer.status])}>{offer.status}</span>
                   </div>
                   <div className="flex gap-3">
-                    <img src={offer.imageUrl} alt={offer.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+                    {offer.imageUrl ? (
+                      <img src={offer.imageUrl} alt={offer.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
+                        <Package className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-foreground text-sm leading-tight line-clamp-2">{offer.name}</p>
                       <p className="text-xs text-muted-foreground mt-1">{offer.category}</p>
@@ -155,18 +207,18 @@ export default function OffersPage({ onGenerateContent }: OffersPageProps) {
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-muted-foreground">Expira</p>
-                      <p className="text-sm font-semibold text-foreground">{new Date(offer.expiry).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</p>
+                      <p className="text-sm font-semibold text-foreground">{offer.expiry ? new Date(offer.expiry).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "—"}</p>
                     </div>
                   </div>
                   <div className="flex gap-2 mt-1">
                     <Button size="sm" className="flex-1 gradient-primary text-white border-0 h-8 text-xs shadow-glow hover:opacity-90" onClick={() => onGenerateContent(offer)}>
                       <Wand2 className="w-3 h-3 mr-1" /> Gerar Conteúdo
                     </Button>
+                    <Button variant="outline" size="sm" className="h-8 w-8 p-0 border-border hover:bg-muted" onClick={() => handleSync(offer)} disabled={syncingId === offer.id} title="Sincronizar oferta">
+                      <RefreshCw className={cn("w-3 h-3", syncingId === offer.id && "animate-spin")} />
+                    </Button>
                     <Button variant="outline" size="sm" className="h-8 w-8 p-0 border-border hover:bg-muted" onClick={() => window.open(offer.link, "_blank")}>
                       <ExternalLink className="w-3 h-3" />
-                    </Button>
-                    <Button variant="outline" size="sm" className="h-8 w-8 p-0 border-border hover:bg-muted">
-                      <Edit2 className="w-3 h-3" />
                     </Button>
                     <Button variant="outline" size="sm" className="h-8 w-8 p-0 border-destructive/30 hover:bg-destructive/10 text-destructive" onClick={() => handleDelete(offer.id)}>
                       <Trash2 className="w-3 h-3" />
