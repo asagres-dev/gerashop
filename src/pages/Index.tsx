@@ -57,6 +57,7 @@ export default function Index() {
       case "mapeamento": return <NicheMappingPage />;
       case "campanhas": return <CampaignsPage />;
       case "analytics": return <AnalyticsPage />;
+      case "ai-settings": return <AISettingsPage />;
       case "configuracoes": return <SettingsPage />;
       default: return <DashboardPage />;
     }
