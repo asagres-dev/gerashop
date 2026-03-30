@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { autoSyncService } from "@/lib/services/autoSyncService";
 import { useAuth } from "@/contexts/AuthContext";
 import LoginPage from "@/components/LoginPage";
 import Sidebar from "@/components/Sidebar";
