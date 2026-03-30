@@ -253,6 +253,96 @@ export default function SettingsPage() {
         </div>
       ),
     },
+    {
+      id: "instagram", icon: Instagram, title: "Integração Instagram",
+      content: (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">📷</span>
+              <span className="text-sm font-semibold text-foreground">Instagram Graph API</span>
+            </div>
+            <span className="text-xs font-medium px-2 py-1 rounded-full bg-warning/10 text-warning">
+              ⏳ Aguardando Configuração
+            </span>
+          </div>
+          <div className="p-4 rounded-xl bg-warning/5 border border-warning/20">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Publique diretamente no Instagram</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Conecte sua conta Business ou Creator do Instagram para publicar posts, Reels e Stories diretamente do sistema.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-3 opacity-50">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Client ID (Facebook App)</Label>
+              <Input disabled placeholder="Será configurado futuramente" className="bg-muted border-border h-10" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Instagram Business ID</Label>
+              <Input disabled placeholder="Será detectado automaticamente" className="bg-muted border-border h-10" />
+            </div>
+          </div>
+          <Button disabled className="w-full" variant="outline">
+            🔒 Conectar Instagram (em breve)
+          </Button>
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p>📌 <strong>Requisitos:</strong> Conta Business ou Creator + Página do Facebook</p>
+            <p>📊 <strong>Limites:</strong> 200 requisições/hora, 50 publicações/hora</p>
+            <p>📅 <strong>Agendamento:</strong> Até 75 dias no futuro</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "whatsapp", icon: MessageCircle, title: "Integração WhatsApp Business",
+      content: (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">💬</span>
+              <span className="text-sm font-semibold text-foreground">WhatsApp Business API</span>
+            </div>
+            <span className="text-xs font-medium px-2 py-1 rounded-full bg-warning/10 text-warning">
+              ⏳ Aguardando Configuração
+            </span>
+          </div>
+          <div className="p-4 rounded-xl bg-warning/5 border border-warning/20">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Envie ofertas via WhatsApp</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Conecte sua conta WhatsApp Business para enviar mensagens e ofertas diretamente para clientes e grupos.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-3 opacity-50">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Account SID (Twilio)</Label>
+              <Input disabled placeholder="Será configurado futuramente" className="bg-muted border-border h-10 font-mono" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Número WhatsApp Business</Label>
+              <Input disabled placeholder="+55 11 99999-9999" className="bg-muted border-border h-10" />
+            </div>
+          </div>
+          <Button disabled className="w-full" variant="outline">
+            🔒 Conectar WhatsApp Business (em breve)
+          </Button>
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p>📌 <strong>Requisitos:</strong> Conta WhatsApp Business verificada</p>
+            <p>📝 <strong>Importante:</strong> Primeiro contato exige template aprovado</p>
+            <p>⏰ <strong>Janela:</strong> 24 horas para respostas livres após contato do cliente</p>
+          </div>
+        </div>
+      ),
+    },
   ];
 
   return (

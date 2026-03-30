@@ -301,21 +301,66 @@ export default function CalendarPage() {
               const today = isToday(p.date);
               const tomorrow = isSameDay(p.date, new Date(Date.now() + 86400000));
               const dateLabel = today ? "HOJE" : tomorrow ? "AMANHÃ" : p.date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+              const isExpanded = previewPostId === p.id;
               return (
-                <div key={p.id} className="flex items-center gap-4 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors group">
-                  <div className={cn("w-2 h-2 rounded-full flex-shrink-0", statusConfig[p.status].dot)} />
-                  <div className="flex items-center gap-2 min-w-[140px]">
-                    <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className={cn("text-sm font-semibold", today ? "text-success" : tomorrow ? "text-warning" : "text-primary")}>{dateLabel}</span>
-                    <span className="text-sm text-foreground">{p.time}</span>
+                <div key={p.id} className="rounded-xl bg-muted/50 hover:bg-muted transition-colors group">
+                  <div className="flex items-center gap-4 p-3">
+                    <div className={cn("w-2 h-2 rounded-full flex-shrink-0", statusConfig[p.status].dot)} />
+                    <div className="flex items-center gap-2 min-w-[140px]">
+                      <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className={cn("text-sm font-semibold", today ? "text-success" : tomorrow ? "text-warning" : "text-primary")}>{dateLabel}</span>
+                      <span className="text-sm text-foreground">{p.time}</span>
+                    </div>
+                    <span className="text-sm text-foreground flex-1 truncate">{p.offerName}</span>
+                    <Badge variant="outline" className="text-xs">{p.contentType}</Badge>
+                    <div className="flex items-center gap-1 text-muted-foreground">{channelIcons[p.channel]}<span className="text-xs">{p.channel}</span></div>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setPreviewPostId(isExpanded ? null : p.id)} className="text-muted-foreground hover:text-primary transition-colors p-1" title="Preview">
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                      {p.status === "scheduled" && (
+                        <button onClick={() => handlePublishNow(p)} className="text-muted-foreground hover:text-success transition-colors p-1" title="Publicar agora">
+                          <Send className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {p.status === "published" && (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+                      )}
+                      <button onClick={() => handleDelete(p.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive p-1">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <span className="text-sm text-foreground flex-1 truncate">{p.offerName}</span>
-                  {p.caption && <span className="text-xs text-muted-foreground truncate max-w-[200px]" title={p.caption}>{p.caption}</span>}
-                  <Badge variant="outline" className="text-xs">{p.contentType}</Badge>
-                  <div className="flex items-center gap-1 text-muted-foreground">{channelIcons[p.channel]}<span className="text-xs">{p.channel}</span></div>
-                  <button onClick={() => handleDelete(p.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {isExpanded && (
+                    <div className="px-3 pb-3 border-t border-border/50 mt-1 pt-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-muted-foreground">Canal</p>
+                          <div className="flex items-center gap-1.5">{channelIcons[p.channel]} <span className="text-sm text-foreground">{p.channel}</span></div>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-muted-foreground">Status</p>
+                          <Badge className={cn("text-xs", statusConfig[p.status].color)}>{statusConfig[p.status].label}</Badge>
+                        </div>
+                        {p.caption && (
+                          <div className="col-span-2 space-y-1">
+                            <p className="text-xs font-medium text-muted-foreground">Legenda</p>
+                            <p className="text-sm text-foreground whitespace-pre-wrap bg-background rounded-lg p-3 border border-border">{p.caption}</p>
+                          </div>
+                        )}
+                      </div>
+                      {p.status === "scheduled" && (
+                        <div className="flex gap-2 mt-3">
+                          <Button size="sm" onClick={() => handlePublishNow(p)} className="bg-success hover:bg-success/90 text-white border-0">
+                            <Send className="w-3 h-3 mr-1" /> Publicar Agora
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => handleDelete(p.id)}>
+                            <Trash2 className="w-3 h-3 mr-1" /> Cancelar
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
