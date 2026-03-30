@@ -11,6 +11,7 @@ import AnalyticsPage from "@/components/AnalyticsPage";
 import SettingsPage from "@/components/SettingsPage";
 import CalendarPage from "@/components/CalendarPage";
 import NicheMappingPage from "@/components/NicheMappingPage";
+import AISettingsPage from "@/components/AISettingsPage";
 import { Offer } from "@/components/OffersPage";
 
 export default function Index() {
@@ -56,6 +57,7 @@ export default function Index() {
       case "mapeamento": return <NicheMappingPage />;
       case "campanhas": return <CampaignsPage />;
       case "analytics": return <AnalyticsPage />;
+      case "ai-settings": return <AISettingsPage />;
       case "configuracoes": return <SettingsPage />;
       default: return <DashboardPage />;
     }
