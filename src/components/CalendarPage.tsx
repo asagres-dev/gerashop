@@ -134,6 +134,21 @@ export default function CalendarPage() {
     } catch {}
   };
 
+  const handlePublishNow = async (post: ScheduledPost) => {
+    try {
+      await dataService.updateScheduledPost(post.id, {
+        status: "PUBLISHED",
+        published_at: new Date().toISOString(),
+      });
+      setPosts(prev => prev.map(p => p.id === post.id ? { ...p, status: "published" as PostStatus } : p));
+      toast({ title: "✅ Publicado!", description: `${post.offerName} marcado como publicado.` });
+    } catch (err: any) {
+      toast({ title: "Erro ao publicar", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const [previewPostId, setPreviewPostId] = useState<string | null>(null);
+
   const getWeekDays = () => {
     const start = new Date(currentDate);
     start.setDate(start.getDate() - start.getDay());
