@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import {
   CalendarDays, Plus, ChevronLeft, ChevronRight, Clock, Instagram,
-  MessageCircle, Film, Image as ImageIcon, Trash2, CalendarOff
+  MessageCircle, Film, Image as ImageIcon, Trash2, CalendarOff, Eye, Send, CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
