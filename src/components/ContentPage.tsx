@@ -242,6 +242,37 @@ export default function ContentPage({ preSelectedOffer }: ContentPageProps) {
             </div>
           </div>
 
+          {/* AI Model Selector */}
+          {aiProviders.length > 0 && (
+            <div className="rounded-2xl border border-border p-5 shadow-card" style={{ background: "hsl(var(--card))" }}>
+              <h3 className="font-display font-semibold text-foreground mb-3 text-sm">🤖 Modelo de IA</h3>
+              <div className="relative">
+                <select
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  className="w-full bg-muted border border-border text-foreground text-sm rounded-xl px-4 pr-9 py-2.5 focus:outline-none focus:border-primary appearance-none"
+                >
+                  <option value="">Usar geração local (padrão)</option>
+                  {aiProviders.map((prov) => {
+                    const models = aiModels[prov.id] || [];
+                    if (models.length === 0) return null;
+                    return (
+                      <optgroup key={prov.id} label={prov.name}>
+                        {models.slice(0, 20).map((m) => (
+                          <option key={m.id} value={`${prov.id}::${m.id}`}>
+                            {m.name || m.id}
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  })}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Configure provedores em Config. de IA</p>
+            </div>
+          )}
+
           <Button onClick={handleGenerate} disabled={generating || !selectedOffer} className="w-full h-12 gradient-primary text-white border-0 shadow-glow hover:opacity-90 font-semibold text-base">
             {generating ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Gerando com IA...</> : <><Sparkles className="w-4 h-4 mr-2" /> Gerar Conteúdo</>}
           </Button>
