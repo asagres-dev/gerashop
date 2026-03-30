@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { autoSyncService } from "@/lib/services/autoSyncService";
 import { useAuth } from "@/contexts/AuthContext";
 import LoginPage from "@/components/LoginPage";
 import Sidebar from "@/components/Sidebar";
@@ -16,6 +17,13 @@ export default function Index() {
   const { user, loading, signOut } = useAuth();
   const [activePage, setActivePage] = useState("dashboard");
   const [preSelectedOffer, setPreSelectedOffer] = useState<Offer | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      autoSyncService.start(30);
+      return () => autoSyncService.stop();
+    }
+  }, [user]);
 
   const handleGenerateContent = (offer: Offer) => {
     setPreSelectedOffer(offer);

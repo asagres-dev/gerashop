@@ -127,6 +127,17 @@ export default function AddOfferModal({ onClose, onAdd }: AddOfferModalProps) {
               <div className="col-span-2 space-y-1.5">
                 <Label className="text-xs text-muted-foreground">URL da Imagem</Label>
                 <Input value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} placeholder="https://..." className="bg-muted border-border h-9" />
+                {form.imageUrl && (
+                  <div className="mt-2 relative">
+                    <img
+                      src={form.imageUrl}
+                      alt="Preview"
+                      className="w-full h-32 object-cover rounded-lg border border-border"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                    <span className="absolute top-1 right-1 text-[10px] bg-background/80 text-muted-foreground px-1.5 py-0.5 rounded">Preview</span>
+                  </div>
+                )}
               </div>
               <div className="col-span-2 space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Data de Expiração</Label>
