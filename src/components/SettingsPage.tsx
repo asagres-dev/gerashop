@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Settings, Key, Bell, Webhook, User, Save, Copy, Check, RefreshCw, Plug, ToggleLeft, ToggleRight, AlertCircle } from "lucide-react";
+import { Settings, Key, Bell, Webhook, User, Save, Copy, Check, RefreshCw, Plug, ToggleLeft, ToggleRight, AlertCircle, Instagram, MessageCircle, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
