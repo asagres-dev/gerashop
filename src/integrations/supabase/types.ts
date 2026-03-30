@@ -14,6 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_providers: {
+        Row: {
+          api_key: string | null
+          api_url: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key?: string | null
+          api_url?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key?: string | null
+          api_url?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_task_configs: {
+        Row: {
+          created_at: string
+          frequency_penalty: number | null
+          id: string
+          max_tokens: number | null
+          model_id: string
+          provider_id: string | null
+          task: string
+          temperature: number | null
+          top_p: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          frequency_penalty?: number | null
+          id?: string
+          max_tokens?: number | null
+          model_id: string
+          provider_id?: string | null
+          task: string
+          temperature?: number | null
+          top_p?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          frequency_penalty?: number | null
+          id?: string
+          max_tokens?: number | null
+          model_id?: string
+          provider_id?: string | null
+          task?: string
+          temperature?: number | null
+          top_p?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_task_configs_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "ai_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analytics: {
         Row: {
           created_at: string | null
@@ -308,6 +394,7 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          ai_global_params: Json | null
           ai_model: string | null
           api_key: string | null
           calendar_settings: Json | null
@@ -323,6 +410,7 @@ export type Database = {
           whatsapp_group_name: string | null
         }
         Insert: {
+          ai_global_params?: Json | null
           ai_model?: string | null
           api_key?: string | null
           calendar_settings?: Json | null
@@ -338,6 +426,7 @@ export type Database = {
           whatsapp_group_name?: string | null
         }
         Update: {
+          ai_global_params?: Json | null
           ai_model?: string | null
           api_key?: string | null
           calendar_settings?: Json | null
