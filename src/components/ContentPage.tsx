@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import { Offer } from "./OffersPage";
 import { useAuth } from "@/contexts/AuthContext";
 import { dataService } from "@/lib/services/dataService";
+import { aiProviderService } from "@/lib/ai/providerService";
+import type { AIProvider, AIModel } from "@/lib/ai/types";
 
 const platformConfig: Record<string, { emoji: string; gradient: string }> = {
   Natura: { emoji: "🌿", gradient: "from-emerald-500 to-teal-500" },
