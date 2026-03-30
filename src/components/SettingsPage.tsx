@@ -88,28 +88,25 @@ export default function SettingsPage() {
       id: "ai", icon: Key, title: "Integrações de IA",
       content: (
         <div className="space-y-4">
+          <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+            <div className="flex items-start gap-3">
+              <Settings className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Configuração avançada de IA</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Gerencie provedores, modelos e parâmetros na página dedicada de <strong>Config. de IA</strong> no menu lateral.
+                  Suporte a OpenRouter, OpenAI, Anthropic, Google, Groq, DeepSeek e provedores customizados.
+                </p>
+              </div>
+            </div>
+          </div>
           <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">OpenRouter API Key</Label>
+            <Label className="text-xs text-muted-foreground">OpenRouter API Key (legado)</Label>
             <div className="flex gap-2">
               <Input value={apiKey} onChange={(e) => setApiKey(e.target.value)} className="bg-muted border-border h-10 font-mono text-sm" />
               <Button variant="outline" size="sm" className="h-10 px-3 border-border hover:bg-muted"><RefreshCw className="w-3.5 h-3.5" /></Button>
             </div>
-            <p className="text-xs text-muted-foreground">Obtenha sua chave em <span className="text-primary">openrouter.ai/keys</span></p>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Modelo Padrão de IA</Label>
-            <select value={aiModel} onChange={(e) => setAiModel(e.target.value)} className="w-full bg-muted border border-border text-foreground text-sm rounded-xl px-4 py-2.5 h-10 focus:outline-none focus:border-primary">
-              <option>openai/gpt-4-turbo</option>
-              <option>anthropic/claude-3-opus</option>
-              <option>google/gemini-pro</option>
-              <option>meta-llama/llama-3.1-70b-instruct</option>
-            </select>
-          </div>
-          <div className="p-3 rounded-xl bg-success/5 border border-success/20">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-              <span className="text-xs text-success font-medium">API conectada e funcionando</span>
-            </div>
+            <p className="text-xs text-muted-foreground">Migre para a nova página de IA para configuração completa</p>
           </div>
         </div>
       ),
