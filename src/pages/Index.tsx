@@ -18,6 +18,13 @@ export default function Index() {
   const [activePage, setActivePage] = useState("dashboard");
   const [preSelectedOffer, setPreSelectedOffer] = useState<Offer | null>(null);
 
+  useEffect(() => {
+    if (user) {
+      autoSyncService.start(30);
+      return () => autoSyncService.stop();
+    }
+  }, [user]);
+
   const handleGenerateContent = (offer: Offer) => {
     setPreSelectedOffer(offer);
     setActivePage("conteudo");
