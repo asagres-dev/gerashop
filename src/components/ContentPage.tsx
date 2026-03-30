@@ -94,10 +94,23 @@ export default function ContentPage({ preSelectedOffer }: ContentPageProps) {
   const [copied, setCopied] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [aiProviders, setAiProviders] = useState<AIProvider[]>([]);
+  const [aiModels, setAiModels] = useState<Record<string, AIModel[]>>({});
+  const [selectedModel, setSelectedModel] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user) dataService.getOffers(user.id).then(setOffers).catch(() => {});
+    if (user) {
+      dataService.getOffers(user.id).then(setOffers).catch(() => {});
+      aiProviderService.getProviders(user.id).then((provs) => {
+        setAiProviders(provs);
+        provs.forEach((p) => {
+          aiProviderService.fetchModels(p).then((models) => {
+            setAiModels((prev) => ({ ...prev, [p.id]: models }));
+          });
+        });
+      }).catch(() => {});
+    }
   }, [user]);
 
   const handleGenerate = () => {
