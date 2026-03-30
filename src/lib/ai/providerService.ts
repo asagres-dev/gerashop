@@ -91,7 +91,7 @@ export class AIProviderService {
       .eq("user_id", userId)
       .single();
     if (error) throw error;
-    const params = data?.ai_global_params as AIGlobalParams | null;
+    const params = data?.ai_global_params as unknown as AIGlobalParams | null;
     return params || { temperature: 0.7, max_tokens: 2000, top_p: 0.9, frequency_penalty: 0.0 };
   }
 
