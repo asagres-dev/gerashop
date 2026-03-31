@@ -31,6 +31,7 @@ export default function AISettingsPage() {
   // Add provider form
   const [showAddForm, setShowAddForm] = useState(false);
   const [newProvider, setNewProvider] = useState({ type: "openrouter", name: "", api_key: "", api_url: "" });
+  const [modelSearch, setModelSearch] = useState("");
 
   useEffect(() => {
     if (user) loadAll();
@@ -143,7 +144,13 @@ export default function AISettingsPage() {
     try {
       await aiProviderService.updateGlobalParams(user.id, globalParams);
       for (const config of taskConfigs) {
-        await aiProviderService.upsertTaskConfig({ ...config, user_id: user.id });
+        const payload = { 
+          ...config, 
+          user_id: user.id,
+          provider_id: config.provider_id || null,
+          model_id: config.model_id || null
+        } as any;
+        await aiProviderService.upsertTaskConfig(payload);
       }
       toast({ title: "Configurações salvas!" });
     } catch (err: any) {
@@ -262,7 +269,7 @@ export default function AISettingsPage() {
           </div>
         ) : (
           <div className="space-y-2">
-            {providers.map((prov) => {
+            {[...providers].sort((a,b) => a.name.localeCompare(b.name)).map((prov) => {
               const typeInfo = providerTypeInfo(prov.type);
               const cachedModels = modelCache[prov.id] || [];
               return (
@@ -317,6 +324,14 @@ export default function AISettingsPage() {
           </p>
         ) : (
           <div className="space-y-3">
+            <div className="mb-2">
+              <Input 
+                placeholder="Pesquisar por modelo (ex: claude, gpt-4)..." 
+                value={modelSearch} 
+                onChange={(e) => setModelSearch(e.target.value)} 
+                className="h-9 w-full bg-background border-border"
+              />
+            </div>
             {AI_TASKS.map((task) => {
               const config = getTaskConfig(task.id);
               return (
@@ -334,8 +349,11 @@ export default function AISettingsPage() {
                     className="bg-background border border-border rounded-lg px-3 py-1.5 text-sm max-w-[300px]"
                   >
                     <option value="">Selecione um modelo...</option>
-                    {providers.map((prov) => {
-                      const models = modelCache[prov.id] || [];
+                    {[...providers].sort((a,b) => a.name.localeCompare(b.name)).map((prov) => {
+                      const models = (modelCache[prov.id] || [])
+                        .filter(m => !modelSearch || m.name?.toLowerCase().includes(modelSearch.toLowerCase()) || m.id.toLowerCase().includes(modelSearch.toLowerCase()))
+                        .sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id));
+                      
                       if (models.length === 0) return null;
                       return (
                         <optgroup key={prov.id} label={prov.name}>

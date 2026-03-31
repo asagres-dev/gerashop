@@ -164,7 +164,7 @@ class DataService {
       name: externalData.name,
       category: externalData.category,
       affiliate_link: externalData.affiliate_link,
-      image_url: externalData.image_urls && externalData.image_urls.length > 0 ? externalData.image_urls[0] : "",
+      image_url: externalData.image_urls && externalData.image_urls.length > 0 ? externalData.image_urls[0] : externalData.image_url || "",
       expiration_date: externalData.expiration_date ? new Date(externalData.expiration_date).toISOString() : null,
       last_sync: new Date().toISOString(),
     });
@@ -209,7 +209,7 @@ class DataService {
         ? Math.round(((offer.original_price - offer.promotional_price) / offer.original_price) * 100)
         : 0),
       affiliate_link: offer.affiliate_link || "",
-      image_url: offer.image_urls && offer.image_urls.length > 0 ? offer.image_urls[0] : "",
+      image_url: offer.image_urls && offer.image_urls.length > 0 ? offer.image_urls[0] : offer.image_url || "",
       expiration_date: offer.expiration_date ? new Date(offer.expiration_date).toISOString() : null,
       stock: offer.stock || 0,
       status: "ACTIVE",

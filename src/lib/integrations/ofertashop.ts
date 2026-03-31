@@ -32,6 +32,7 @@ export interface OfertashopOffer {
   discount_percentage?: number;
   affiliate_link: string;
   image_urls?: string[];
+  image_url?: string;
   description?: string;
   tags?: string[];
   stock?: number;
@@ -45,8 +46,9 @@ export class OfertashopClient {
     this.config = config || DEFAULT_OFERTASHOP_CONFIG;
   }
 
-  isReady(): boolean {
-    return this.config.isEnabled && !!this.config.apiUrl && !!this.config.apiKey;
+  isReady(configOverrides?: Partial<OfertashopConfig>): boolean {
+    const c = { ...this.config, ...configOverrides };
+    return c.isEnabled === true && !!c.apiUrl && !!c.apiKey;
   }
 
   getConfig() { return this.config; }

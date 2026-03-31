@@ -9,6 +9,7 @@ import { dataService } from "@/lib/services/dataService";
 import { ofertashopClient } from "@/lib/integrations/ofertashop";
 import AddOfferModal from "./AddOfferModal";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface Offer {
   id: string;
@@ -52,6 +53,7 @@ export default function OffersPage({ onGenerateContent }: OffersPageProps) {
   const [loading, setLoading] = useState(true);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [isBulkImporting, setIsBulkImporting] = useState(false);
+  const [isConfigLoading, setIsConfigLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -101,11 +103,31 @@ export default function OffersPage({ onGenerateContent }: OffersPageProps) {
     }
   };
 
+  const loadAndCheckConfig = async () => {
+    try {
+      const { data } = await supabase.from('integrations_config').select('*').eq('provider', 'ofertashop').single();
+      if (data) {
+        await ofertashopClient.activate({
+          apiUrl: data.api_url,
+          apiKey: data.api_key,
+          isEnabled: data.is_active,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    return ofertashopClient.isReady();
+  };
+
   const handleSync = async (offer: Offer) => {
-    if (!ofertashopClient.isReady()) {
+    setIsConfigLoading(true);
+    const isReady = await loadAndCheckConfig();
+    setIsConfigLoading(false);
+
+    if (!isReady) {
       toast({
         title: "⏳ API não configurada",
-        description: "A API do Ofertashop ainda não está disponível. Configure em Configurações > Integrações.",
+        description: "A API do Ofertashop ainda não está disponível ou inativa. Configure em Configurações > Integrações.",
         variant: "destructive",
       });
       return;
@@ -124,10 +146,14 @@ export default function OffersPage({ onGenerateContent }: OffersPageProps) {
   };
 
   const handleBulkImport = async () => {
-    if (!ofertashopClient.isReady()) {
+    setIsConfigLoading(true);
+    const isReady = await loadAndCheckConfig();
+    setIsConfigLoading(false);
+
+    if (!isReady) {
       toast({
         title: "⏳ API não configurada",
-        description: "A API do Ofertashop ainda não está disponível. Configure em Configurações > Integrações.",
+        description: "A API do Ofertashop ainda não está disponível ou inativa. Configure em Configurações > Integrações.",
         variant: "destructive",
       });
       return;
@@ -158,8 +184,8 @@ export default function OffersPage({ onGenerateContent }: OffersPageProps) {
           <p className="text-muted-foreground text-sm mt-1">{filtered.length} ofertas encontradas</p>
         </div>
         <div className="flex gap-3">
-          <Button onClick={handleBulkImport} disabled={isBulkImporting} variant="outline" className="border-primary text-primary hover:bg-primary/10">
-            <RefreshCw className={cn("w-4 h-4 mr-2", isBulkImporting && "animate-spin")} /> Importar Lote
+          <Button onClick={handleBulkImport} disabled={isBulkImporting || isConfigLoading} variant="outline" className="border-primary text-primary hover:bg-primary/10">
+            <RefreshCw className={cn("w-4 h-4 mr-2", (isBulkImporting || isConfigLoading) && "animate-spin")} /> Importar Lote
           </Button>
           <Button onClick={() => setShowModal(true)} className="gradient-primary text-white border-0 shadow-glow hover:opacity-90">
             <Plus className="w-4 h-4 mr-2" /> Nova Oferta
