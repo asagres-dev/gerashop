@@ -181,28 +181,46 @@ class DataService {
        activeUserId = data?.user?.id;
     }
 
-    const rows = offers.map(offer => ({
-      external_id: offer.external_id,
-      name: offer.name,
-      platform: offer.platform,
+    // Busca as ofertas existentes para evitar produtos duplicados pelo nome
+    const { data: existingOffers, error: fetchError } = await db
+      .from("offers")
+      .select("id, name")
+      .eq("user_id", activeUserId);
+
+    if (fetchError) {
+      console.error("Erro ao buscar ofertas existentes:", fetchError);
+      throw new Error(`Falha ao buscar ofertas existentes: ${fetchError.message}`);
+    }
+
+    const existingNames = new Set((existingOffers || []).map((o: any) => o.name));
+
+    // Filtra o array para ficar apenas com as ofertas novas
+    const newOffers = offers.filter(offer => !existingNames.has(offer.name));
+
+    if (newOffers.length === 0) return;
+
+    const rows = newOffers.map(offer => ({
+      name: offer.name || "Oferta sem nome",
+      platform: offer.platform || "Outra",
       category: offer.category || "Geral",
-      original_price: offer.original_price,
-      promotional_price: offer.promotional_price,
+      original_price: offer.original_price || 0,
+      promotional_price: offer.promotional_price || 0,
       discount: offer.discount_percentage || (offer.original_price && offer.promotional_price
         ? Math.round(((offer.original_price - offer.promotional_price) / offer.original_price) * 100)
         : 0),
-      affiliate_link: offer.affiliate_link,
+      affiliate_link: offer.affiliate_link || "",
       image_url: offer.image_url || "",
       expiration_date: offer.expiration_date ? new Date(offer.expiration_date).toISOString() : null,
-      stock: offer.stock,
+      stock: offer.stock || 0,
       status: "ACTIVE",
       user_id: activeUserId,
       last_sync: new Date().toISOString()
     }));
 
-    const { error } = await db.from("offers").upsert(rows, { onConflict: "external_id" });
+    const { error } = await db.from("offers").insert(rows);
     if (error) {
-      console.error("Erro no bulk import de ofertas:", error);
+      console.error("Erro no bulk import:", error);
+      throw new Error(`Falha ao gravar no banco: ${error.message}`);
     }
   }
 
