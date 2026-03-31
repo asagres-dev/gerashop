@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   LayoutDashboard, Package, Wand2, BarChart3, Megaphone, Settings, LogOut,
-  Zap, ChevronLeft, ChevronRight, Users, Bell, CalendarDays, Brain
+  Zap, ChevronLeft, ChevronRight, Users, Bell, CalendarDays, Brain, Share2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,6 +15,7 @@ const navItems = [
   { icon: Brain, label: "Mapeamento", id: "mapeamento" },
   { icon: Megaphone, label: "Campanhas", id: "campanhas" },
   { icon: BarChart3, label: "Analytics", id: "analytics" },
+  { icon: Share2, label: "Publicação", id: "publicacao" },
   { icon: Zap, label: "Config. de IA", id: "ai-settings" },
   { icon: Settings, label: "Configurações", id: "configuracoes" },
 ];

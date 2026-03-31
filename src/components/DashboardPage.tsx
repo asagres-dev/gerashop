@@ -1,37 +1,9 @@
-import { TrendingUp, TrendingDown, DollarSign, Eye, Users, Package, Activity, Calendar, Star, Lightbulb } from "lucide-react";
+import { useState, useEffect } from "react";
+import { TrendingUp, TrendingDown, DollarSign, Eye, Users, Package, Activity, Calendar, Star, Lightbulb, Loader2 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
-
-const weeklyClicks = [
-  { day: "Seg", clicks: 420, natura: 120, amazon: 180, shopee: 80, ml: 40 },
-  { day: "Ter", clicks: 580, natura: 200, amazon: 220, shopee: 90, ml: 70 },
-  { day: "Qua", clicks: 350, natura: 100, amazon: 150, shopee: 60, ml: 40 },
-  { day: "Qui", clicks: 720, natura: 280, amazon: 250, shopee: 120, ml: 70 },
-  { day: "Sex", clicks: 890, natura: 320, amazon: 310, shopee: 150, ml: 110 },
-  { day: "Sáb", clicks: 1040, natura: 400, amazon: 380, shopee: 160, ml: 100 },
-  { day: "Dom", clicks: 760, natura: 250, amazon: 280, shopee: 140, ml: 90 },
-];
-
-const conversionData = [
-  { type: "Reels", value: 4200 },
-  { type: "Feed", value: 2800 },
-  { type: "Stories", value: 1900 },
-  { type: "WhatsApp", value: 3500 },
-];
-
-const recentActivity = [
-  { icon: "🆕", text: "Nova oferta importada: Perfume Essencial", time: "5 min" },
-  { icon: "🤖", text: "Conteúdo gerado: Echo Dot (Reels)", time: "12 min" },
-  { icon: "📅", text: "Campanha programada: Dia das Mães", time: "1 hora" },
-  { icon: "🔍", text: "Análise de concorrente concluída", time: "2 horas" },
-  { icon: "💰", text: "Comissão recebida: R$45,20 (Shopee)", time: "3 horas" },
-];
-
-const upcomingCampaigns = [
-  { name: "Dia das Mães", days: 18, color: "from-pink-500 to-rose-500", emoji: "💐" },
-  { name: "Dia dos Namorados", days: 55, color: "from-red-500 to-pink-500", emoji: "💕" },
-  { name: "Black Friday", days: 112, color: "from-orange-500 to-amber-500", emoji: "🛍️" },
-];
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -49,13 +21,74 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+const upcomingCampaigns = [
+  { name: "Dia das Mães", days: 18, color: "from-pink-500 to-rose-500", emoji: "💐" },
+  { name: "Dia dos Namorados", days: 55, color: "from-red-500 to-pink-500", emoji: "💕" },
+  { name: "Black Friday", days: 112, color: "from-orange-500 to-amber-500", emoji: "🛍️" },
+];
+
 export default function DashboardPage() {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [offersCount, setOffersCount] = useState(0);
+  const [totalClicks, setTotalClicks] = useState(0);
+  const [totalCommission, setTotalCommission] = useState(0);
+  const [scheduledCount, setScheduledCount] = useState(0);
+  const [recentOffers, setRecentOffers] = useState<any[]>([]);
+  const [recentPosts, setRecentPosts] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (user) loadDashboardData();
+  }, [user]);
+
+  const loadDashboardData = async () => {
+    setLoading(true);
+    try {
+      const [offersRes, postsRes] = await Promise.all([
+        supabase.from("offers").select("id, name, clicks, commission, platform, created_at, status").order("created_at", { ascending: false }).limit(10) as any,
+        supabase.from("scheduled_posts").select("id, offer_name, channel, scheduled_date, status, created_at").order("created_at", { ascending: false }).limit(5) as any,
+      ]);
+
+      const offers = offersRes.data || [];
+      const posts = postsRes.data || [];
+
+      const activeOffers = offers.filter((o: any) => o.status === "ACTIVE");
+      setOffersCount(activeOffers.length);
+      setTotalClicks(offers.reduce((sum: number, o: any) => sum + (o.clicks || 0), 0));
+      setTotalCommission(offers.reduce((sum: number, o: any) => sum + (Number(o.commission) || 0), 0));
+      setScheduledCount(posts.filter((p: any) => p.status === "SCHEDULED").length);
+      setRecentOffers(offers.slice(0, 5));
+      setRecentPosts(posts.slice(0, 5));
+    } catch (err) {
+      console.error("Error loading dashboard:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const metrics = [
-    { label: "Comissões do Mês", value: "R$ 12.450", change: "+23%", up: true, icon: DollarSign, color: "from-emerald-500 to-teal-500" },
-    { label: "Visualizações (7d)", value: "8,2K", change: "+12%", up: true, icon: Eye, color: "from-blue-500 to-indigo-500" },
-    { label: "Membros do Grupo", value: "1.240", change: "+8%", up: true, icon: Users, color: "from-purple-500 to-violet-500" },
-    { label: "Ofertas Ativas", value: "34", change: "-2%", up: false, icon: Package, color: "from-orange-500 to-amber-500" },
+    { label: "Comissões Totais", value: `R$ ${totalCommission.toFixed(2)}`, change: offersCount > 0 ? "+ativo" : "—", up: totalCommission > 0, icon: DollarSign, color: "from-emerald-500 to-teal-500" },
+    { label: "Cliques Totais", value: totalClicks.toLocaleString("pt-BR"), change: totalClicks > 0 ? `${totalClicks} cliques` : "—", up: totalClicks > 0, icon: Eye, color: "from-blue-500 to-indigo-500" },
+    { label: "Posts Agendados", value: String(scheduledCount), change: scheduledCount > 0 ? "pendentes" : "nenhum", up: scheduledCount > 0, icon: Calendar, color: "from-purple-500 to-violet-500" },
+    { label: "Ofertas Ativas", value: String(offersCount), change: offersCount > 0 ? "ativas" : "nenhuma", up: offersCount > 0, icon: Package, color: "from-orange-500 to-amber-500" },
   ];
+
+  // Build simple chart data from recent offers
+  const chartData = recentOffers.slice(0, 7).map((o: any, i: number) => ({
+    name: (o.name || "").substring(0, 10),
+    clicks: o.clicks || 0,
+  })).reverse();
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          <p className="text-sm text-muted-foreground">Carregando dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
@@ -74,8 +107,8 @@ export default function DashboardPage() {
                 <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center", m.color)}>
                   <Icon className="w-5 h-5 text-white" />
                 </div>
-                <span className={cn("text-xs font-semibold px-2 py-1 rounded-full", m.up ? "bg-success/10 text-success" : "bg-warning/10 text-warning")}>
-                  {m.up ? <TrendingUp className="w-3 h-3 inline mr-1" /> : <TrendingDown className="w-3 h-3 inline mr-1" />}
+                <span className={cn("text-xs font-semibold px-2 py-1 rounded-full", m.up ? "bg-success/10 text-success" : "bg-muted text-muted-foreground")}>
+                  {m.up ? <TrendingUp className="w-3 h-3 inline mr-1" /> : null}
                   {m.change}
                 </span>
               </div>
@@ -88,42 +121,51 @@ export default function DashboardPage() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        {/* Line Chart */}
+        {/* Bar Chart - clicks per offer */}
         <div className="xl:col-span-2 rounded-2xl border border-border p-5 shadow-card" style={{ background: "hsl(var(--card))" }}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-display font-semibold text-foreground">Cliques nos Links</h3>
-              <p className="text-xs text-muted-foreground">Últimos 7 dias por plataforma</p>
+              <h3 className="font-display font-semibold text-foreground">Cliques por Oferta</h3>
+              <p className="text-xs text-muted-foreground">Ofertas recentes</p>
             </div>
             <Activity className="w-4 h-4 text-primary" />
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={weeklyClicks}>
-              <XAxis dataKey="day" tick={{ fill: "hsl(215 20% 55%)", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "hsl(215 20% 55%)", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} />
-              <Line type="monotone" dataKey="clicks" stroke="hsl(262 80% 60%)" strokeWidth={2.5} dot={false} name="Total" />
-              <Line type="monotone" dataKey="amazon" stroke="hsl(38 92% 55%)" strokeWidth={1.5} dot={false} name="Amazon" />
-              <Line type="monotone" dataKey="natura" stroke="hsl(142 68% 45%)" strokeWidth={1.5} dot={false} name="Natura" />
-              <Line type="monotone" dataKey="shopee" stroke="hsl(20 90% 55%)" strokeWidth={1.5} dot={false} name="Shopee" />
-            </LineChart>
-          </ResponsiveContainer>
+          {chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={chartData} barSize={28}>
+                <XAxis dataKey="name" tick={{ fill: "hsl(215 20% 55%)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "hsl(215 20% 55%)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="clicks" fill="hsl(262 80% 60%)" radius={[6, 6, 0, 0]} name="Cliques" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[200px] text-muted-foreground text-sm">
+              Nenhuma oferta cadastrada ainda. Crie ofertas para ver os dados aqui.
+            </div>
+          )}
         </div>
 
-        {/* Bar Chart */}
+        {/* Upcoming Campaigns */}
         <div className="rounded-2xl border border-border p-5 shadow-card" style={{ background: "hsl(var(--card))" }}>
-          <div className="mb-4">
-            <h3 className="font-display font-semibold text-foreground">Conversões</h3>
-            <p className="text-xs text-muted-foreground">Por tipo de conteúdo</p>
+          <div className="flex items-center gap-2 mb-4">
+            <Calendar className="w-4 h-4 text-primary" />
+            <h3 className="font-display font-semibold text-foreground text-sm">Próximas Campanhas</h3>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={conversionData} barSize={28}>
-              <XAxis dataKey="type" tick={{ fill: "hsl(215 20% 55%)", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "hsl(215 20% 55%)", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="value" fill="hsl(262 80% 60%)" radius={[6, 6, 0, 0]} name="Conversões" />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="space-y-3">
+            {upcomingCampaigns.map((c) => (
+              <div key={c.name} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span>{c.emoji}</span>
+                  <div>
+                    <p className="text-xs font-medium text-foreground">{c.name}</p>
+                    <p className="text-xs text-muted-foreground">{c.days} dias</p>
+                  </div>
+                </div>
+                <button className="text-xs text-primary hover:underline font-medium">Preparar</button>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -132,54 +174,45 @@ export default function DashboardPage() {
         {/* Activity Feed */}
         <div className="xl:col-span-2 rounded-2xl border border-border p-5 shadow-card" style={{ background: "hsl(var(--card))" }}>
           <h3 className="font-display font-semibold text-foreground mb-4">Atividade Recente</h3>
-          <div className="space-y-3">
-            {recentActivity.map((a, i) => (
-              <div key={i} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
-                <span className="text-lg">{a.icon}</span>
-                <p className="flex-1 text-sm text-foreground">{a.text}</p>
-                <span className="text-xs text-muted-foreground whitespace-nowrap">há {a.time}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Upcoming Campaigns + AI Tip */}
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-border p-5 shadow-card" style={{ background: "hsl(var(--card))" }}>
-            <div className="flex items-center gap-2 mb-4">
-              <Calendar className="w-4 h-4 text-primary" />
-              <h3 className="font-display font-semibold text-foreground text-sm">Próximas Campanhas</h3>
-            </div>
+          {recentOffers.length === 0 && recentPosts.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4">Nenhuma atividade ainda. Comece criando ofertas e agendando conteúdo.</p>
+          ) : (
             <div className="space-y-3">
-              {upcomingCampaigns.map((c) => (
-                <div key={c.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span>{c.emoji}</span>
-                    <div>
-                      <p className="text-xs font-medium text-foreground">{c.name}</p>
-                      <p className="text-xs text-muted-foreground">{c.days} dias</p>
-                    </div>
-                  </div>
-                  <button className="text-xs text-primary hover:underline font-medium">Preparar</button>
+              {recentOffers.slice(0, 3).map((o: any, i: number) => (
+                <div key={o.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
+                  <span className="text-lg">🆕</span>
+                  <p className="flex-1 text-sm text-foreground">Oferta: {o.name}</p>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">{o.platform}</span>
+                </div>
+              ))}
+              {recentPosts.slice(0, 3).map((p: any, i: number) => (
+                <div key={p.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
+                  <span className="text-lg">📅</span>
+                  <p className="flex-1 text-sm text-foreground">Agendado: {p.offer_name || p.channel}</p>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">{p.status}</span>
                 </div>
               ))}
             </div>
-          </div>
+          )}
+        </div>
 
-          <div className="rounded-2xl border border-primary/20 p-5 shadow-card" style={{ background: "hsl(262 80% 60% / 0.06)" }}>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-6 h-6 rounded-lg gradient-primary flex items-center justify-center">
-                <Star className="w-3 h-3 text-white" />
-              </div>
-              <span className="text-xs font-semibold text-primary">Dica do Dia — IA</span>
+        {/* AI Tip */}
+        <div className="rounded-2xl border border-primary/20 p-5 shadow-card" style={{ background: "hsl(262 80% 60% / 0.06)" }}>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-6 h-6 rounded-lg gradient-primary flex items-center justify-center">
+              <Star className="w-3 h-3 text-white" />
             </div>
-            <p className="text-sm text-foreground leading-relaxed">
-              Reels com gatilho de <strong>escassez</strong> tiveram <span className="text-success font-semibold">34% mais conversão</span> esta semana. Teste nos próximos posts!
-            </p>
-            <button className="mt-3 flex items-center gap-1 text-xs text-primary hover:underline font-medium">
-              <Lightbulb className="w-3 h-3" /> Nova dica
-            </button>
+            <span className="text-xs font-semibold text-primary">Dica do Dia — IA</span>
           </div>
+          <p className="text-sm text-foreground leading-relaxed">
+            {offersCount > 0
+              ? <>Você tem <strong>{offersCount} ofertas ativas</strong>. Gere conteúdo para cada uma e agende publicações para aumentar conversões!</>
+              : <>Comece cadastrando suas primeiras ofertas e configurando seu provedor de IA para gerar conteúdo automaticamente.</>
+            }
+          </p>
+          <button className="mt-3 flex items-center gap-1 text-xs text-primary hover:underline font-medium">
+            <Lightbulb className="w-3 h-3" /> Nova dica
+          </button>
         </div>
       </div>
     </div>
