@@ -15,6 +15,7 @@ const navItems = [
   { icon: Brain, label: "Mapeamento", id: "mapeamento" },
   { icon: Megaphone, label: "Campanhas", id: "campanhas" },
   { icon: BarChart3, label: "Analytics", id: "analytics" },
+  { icon: Share2, label: "Publicação", id: "publicacao" },
   { icon: Zap, label: "Config. de IA", id: "ai-settings" },
   { icon: Settings, label: "Configurações", id: "configuracoes" },
 ];
