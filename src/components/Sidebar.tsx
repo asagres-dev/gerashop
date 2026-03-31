@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   LayoutDashboard, Package, Wand2, BarChart3, Megaphone, Settings, LogOut,
-  Zap, ChevronLeft, ChevronRight, Users, Bell, CalendarDays, Brain
+  Zap, ChevronLeft, ChevronRight, Users, Bell, CalendarDays, Brain, Share2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
