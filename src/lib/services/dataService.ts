@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Offer } from "@/components/OffersPage";
+import { OfertashopOffer } from "@/lib/integrations/ofertashop";
 
 const db = supabase as any;
 
@@ -155,13 +156,54 @@ class DataService {
   }
 
   // ============ SYNC MANUAL ============
-  async syncOfferManually(id: string, externalData: any): Promise<Offer> {
+  async syncOfferManually(id: string, externalData: OfertashopOffer): Promise<Offer> {
     return this.updateOffer(id, {
-      promotional_price: externalData.preco_promocional,
-      original_price: externalData.preco_original,
-      stock: externalData.estoque,
+      promotional_price: externalData.promotional_price,
+      original_price: externalData.original_price,
+      stock: externalData.stock,
+      name: externalData.name,
+      category: externalData.category,
+      affiliate_link: externalData.affiliate_link,
+      image_url: externalData.image_url,
+      expiration_date: externalData.expiration_date ? new Date(externalData.expiration_date).toISOString() : null,
       last_sync: new Date().toISOString(),
     });
+  }
+
+  async bulkCreateOrUpdateOffers(offers: OfertashopOffer[], userId?: string): Promise<void> {
+    if (!offers || offers.length === 0) return;
+    
+    // We try to find the active user ID if not provided. In background jobs, there might not be a current session.
+    // Ensure we handle data properly. Since it's bulk, it requires the user_id for the RLS/DB mapping if needed.
+    let activeUserId = userId;
+    if (!activeUserId) {
+       const { data } = await supabase.auth.getUser();
+       activeUserId = data?.user?.id;
+    }
+
+    const rows = offers.map(offer => ({
+      external_id: offer.external_id,
+      name: offer.name,
+      platform: offer.platform,
+      category: offer.category || "Geral",
+      original_price: offer.original_price,
+      promotional_price: offer.promotional_price,
+      discount: offer.discount_percentage || (offer.original_price && offer.promotional_price
+        ? Math.round(((offer.original_price - offer.promotional_price) / offer.original_price) * 100)
+        : 0),
+      affiliate_link: offer.affiliate_link,
+      image_url: offer.image_url || "",
+      expiration_date: offer.expiration_date ? new Date(offer.expiration_date).toISOString() : null,
+      stock: offer.stock,
+      status: "ACTIVE",
+      user_id: activeUserId,
+      last_sync: new Date().toISOString()
+    }));
+
+    const { error } = await db.from("offers").upsert(rows, { onConflict: "external_id" });
+    if (error) {
+      console.error("Erro no bulk import de ofertas:", error);
+    }
   }
 
   // ============ CONFIGURAÇÕES ============

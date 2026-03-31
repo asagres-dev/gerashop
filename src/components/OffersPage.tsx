@@ -51,6 +51,7 @@ export default function OffersPage({ onGenerateContent }: OffersPageProps) {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [isBulkImporting, setIsBulkImporting] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -111,14 +112,41 @@ export default function OffersPage({ onGenerateContent }: OffersPageProps) {
     }
     setSyncingId(offer.id);
     try {
-      // Future: const externalData = await ofertashopClient.getOfferById(offer.id);
-      // await dataService.syncOfferManually(offer.id, externalData);
+      const externalData = await ofertashopClient.getOfferById(offer.id);
+      await dataService.syncOfferManually(offer.id, externalData);
       toast({ title: "Sincronização concluída", description: offer.name });
       loadOffers();
     } catch {
       toast({ title: "Erro na sincronização", variant: "destructive" });
     } finally {
       setSyncingId(null);
+    }
+  };
+
+  const handleBulkImport = async () => {
+    if (!ofertashopClient.isReady()) {
+      toast({
+        title: "⏳ API não configurada",
+        description: "A API do Ofertashop ainda não está disponível. Configure em Configurações > Integrações.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsBulkImporting(true);
+    try {
+      toast({ title: "Iniciando importação...", description: "Buscando ofertas do Ofertashop." });
+      const offers = await ofertashopClient.getOffers({ limit: 100 });
+      if (offers.length > 0) {
+        await dataService.bulkCreateOrUpdateOffers(offers);
+        toast({ title: "Importação concluída!", description: `${offers.length} ofertas sincronizadas com sucesso.` });
+        loadOffers();
+      } else {
+        toast({ title: "Nenhuma oferta encontrada", description: "Não há ofertas ativas no momento na origem." });
+      }
+    } catch (err: any) {
+      toast({ title: "Erro na importação em lote", description: err.message, variant: "destructive" });
+    } finally {
+      setIsBulkImporting(false);
     }
   };
 
@@ -129,9 +157,14 @@ export default function OffersPage({ onGenerateContent }: OffersPageProps) {
           <h1 className="text-2xl font-display font-bold text-foreground">Gestão de Ofertas</h1>
           <p className="text-muted-foreground text-sm mt-1">{filtered.length} ofertas encontradas</p>
         </div>
-        <Button onClick={() => setShowModal(true)} className="gradient-primary text-white border-0 shadow-glow hover:opacity-90">
-          <Plus className="w-4 h-4 mr-2" /> Nova Oferta
-        </Button>
+        <div className="flex gap-3">
+          <Button onClick={handleBulkImport} disabled={isBulkImporting} variant="outline" className="border-primary text-primary hover:bg-primary/10">
+            <RefreshCw className={cn("w-4 h-4 mr-2", isBulkImporting && "animate-spin")} /> Importar Lote
+          </Button>
+          <Button onClick={() => setShowModal(true)} className="gradient-primary text-white border-0 shadow-glow hover:opacity-90">
+            <Plus className="w-4 h-4 mr-2" /> Nova Oferta
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-3">

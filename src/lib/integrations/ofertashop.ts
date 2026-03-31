@@ -109,6 +109,16 @@ export class OfertashopClient {
     const data = await response.json();
     return Array.isArray(data) ? data : data.data || [];
   }
+
+  async getOfferById(id: string): Promise<OfertashopOffer> {
+    if (!this.isReady()) throw new Error("API do Ofertashop não configurada");
+    const response = await fetch(`${this.config.apiUrl}/offers/${id}`, {
+      headers: { "X-API-Key": this.config.apiKey },
+    });
+    if (!response.ok) throw new Error(`Erro ao buscar oferta: HTTP ${response.status}`);
+    const data = await response.json();
+    return data.data || data;
+  }
 }
 
 export const ofertashopClient = new OfertashopClient();
