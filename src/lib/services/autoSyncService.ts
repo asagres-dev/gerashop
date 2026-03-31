@@ -37,8 +37,10 @@ export class AutoSyncService {
       console.log("🔄 Iniciando sincronização automática...");
 
       // Future: when Ofertashop API is available, sync active offers
-      const offers = await ofertashopClient.syncOffers();
-      console.log(`✅ Sincronização concluída: ${offers.length} ofertas verificadas`);
+      if (ofertashopClient.isReady()) {
+        const offers = await ofertashopClient.getOffers({ limit: 50 });
+        console.log(`✅ Sincronização concluída: ${offers.length} ofertas verificadas`);
+      }
     } catch (error) {
       console.error("Erro na sincronização automática:", error);
     } finally {

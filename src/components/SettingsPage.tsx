@@ -122,18 +122,14 @@ export default function SettingsPage() {
         try {
           await dataService.createOffer({
             name: offer.name,
-            platform: offer.platform || "Ofertashop",
+            platform: (offer.platform || "Ofertashop") as any,
             category: offer.category || "Geral",
-            original_price: offer.original_price,
-            promotional_price: offer.promotional_price,
-            discount: offer.discount_percentage,
-            affiliate_link: offer.affiliate_link,
-            image_url: offer.image_url,
-            description: offer.description,
-            tags: offer.tags,
-            stock: offer.stock,
-            external_id: offer.external_id,
-            status: "ACTIVE",
+            originalPrice: offer.original_price,
+            promoPrice: offer.promotional_price,
+            link: offer.affiliate_link,
+            imageUrl: offer.image_url || "",
+            expiry: offer.expiration_date || "",
+            status: "Ativa" as any,
           }, user!.id);
           imported++;
         } catch {}
