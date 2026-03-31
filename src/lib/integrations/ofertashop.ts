@@ -119,6 +119,35 @@ export class OfertashopClient {
     const data = await response.json();
     return data.data || data;
   }
+
+  async getAllActiveOffers(): Promise<OfertashopOffer[]> {
+    if (!this.isReady()) throw new Error("API do Ofertashop não configurada");
+    let allOffers: OfertashopOffer[] = [];
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      const response = await fetch(`${this.config.apiUrl}/offers?page=${page}&limit=100`, {
+        headers: { "X-API-Key": this.config.apiKey },
+      });
+      if (!response.ok) break;
+      
+      const json = await response.json();
+      const items = json.data || [];
+      
+      if (items.length > 0) {
+        allOffers = [...allOffers, ...items];
+        page++;
+        // Se a API retornar paginação, respeita o limite de páginas
+        if (json.pagination && page > json.pagination.pages) {
+          hasMore = false;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    return allOffers;
+  }
 }
 
 export const ofertashopClient = new OfertashopClient();

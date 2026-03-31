@@ -135,7 +135,7 @@ export default function OffersPage({ onGenerateContent }: OffersPageProps) {
     setIsBulkImporting(true);
     try {
       toast({ title: "Iniciando importação...", description: "Buscando ofertas do Ofertashop." });
-      const offers = await ofertashopClient.getOffers({ limit: 100 });
+      const offers = await ofertashopClient.getAllActiveOffers();
       if (offers.length > 0) {
         await dataService.bulkCreateOrUpdateOffers(offers);
         toast({ title: "Importação concluída!", description: `${offers.length} ofertas sincronizadas com sucesso.` });
@@ -201,7 +201,7 @@ export default function OffersPage({ onGenerateContent }: OffersPageProps) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((offer) => {
-            const pc = platformConfig[offer.platform];
+            const pc = platformConfig[offer.platform as keyof typeof platformConfig] || { color: "bg-slate-500/15 text-slate-400 border-slate-500/30", dot: "bg-slate-400", gradient: "from-slate-500 to-gray-500" };
             return (
               <div key={offer.id} className="rounded-2xl border border-border shadow-card hover:shadow-elevated hover:border-border/60 transition-all group" style={{ background: "hsl(var(--card))" }}>
                 <div className="p-4">

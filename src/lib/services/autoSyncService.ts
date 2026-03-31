@@ -38,7 +38,7 @@ export class AutoSyncService {
 
       // Sync active offers
       if (ofertashopClient.isReady()) {
-        const offers = await ofertashopClient.getOffers({ limit: 100 });
+        const offers = await ofertashopClient.getAllActiveOffers();
         if (offers.length > 0) {
           await dataService.bulkCreateOrUpdateOffers(offers);
         }
