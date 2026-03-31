@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
-import { Settings, Key, Bell, Webhook, User, Save, Copy, Check, RefreshCw, Plug, ToggleLeft, ToggleRight, AlertCircle, Instagram, MessageCircle, Share2 } from "lucide-react";
+import {
+  Settings, Key, Bell, Webhook, User, Save, Copy, Check, RefreshCw, Plug, AlertCircle,
+  Instagram, MessageCircle, TestTube, Download, Clock, ExternalLink
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,24 +10,31 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { dataService } from "@/lib/services/dataService";
+import { OfertashopClient, type ConnectionTestResult } from "@/lib/integrations/ofertashop";
 import DataStatus from "./DataStatus";
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const [apiKey, setApiKey] = useState("sk-or-v1-•••••••••••••••••••••••••••••••••••");
+  const [apiKey, setApiKey] = useState("");
   const [aiModel, setAiModel] = useState("openai/gpt-4-turbo");
-  const [webhookKey, setWebhookKey] = useState("wh_live_a3f9x2kp8mQ4nR7vYzW1");
-  const [whatsappGroupName, setWhatsappGroupName] = useState("OfertaShop — Melhores Promoções 🔥");
+  const [webhookKey, setWebhookKey] = useState("");
+  const [whatsappGroupName, setWhatsappGroupName] = useState("");
   const [whatsappGroupLink, setWhatsappGroupLink] = useState("");
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loadingSettings, setLoadingSettings] = useState(true);
 
-  // Ofertashop integration state
+  // Ofertashop
   const [ofertashopEnabled, setOfertashopEnabled] = useState(false);
   const [ofertashopUrl, setOfertashopUrl] = useState("");
   const [ofertashopKey, setOfertashopKey] = useState("");
   const [ofertashopWebhook, setOfertashopWebhook] = useState("");
+  const [ofertashopSyncFreq, setOfertashopSyncFreq] = useState(30);
+  const [testResult, setTestResult] = useState<ConnectionTestResult | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [lastSync, setLastSync] = useState<string | null>(null);
 
   const { toast } = useToast();
 
@@ -50,6 +60,8 @@ export default function SettingsPage() {
           setOfertashopUrl(config.apiUrl || "");
           setOfertashopKey(config.apiKey || "");
           setOfertashopWebhook(config.webhookSecret || "");
+          setOfertashopSyncFreq(config.syncFrequency ?? 30);
+          setLastSync(config.lastSync || null);
         }
       }
     } catch {}
@@ -69,6 +81,8 @@ export default function SettingsPage() {
           apiUrl: ofertashopUrl,
           apiKey: ofertashopKey,
           webhookSecret: ofertashopWebhook,
+          syncFrequency: ofertashopSyncFreq,
+          lastSync,
         },
       });
     }
@@ -77,8 +91,68 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const handleTestConnection = async () => {
+    setTesting(true);
+    setTestResult(null);
+    const client = new OfertashopClient({ apiUrl: ofertashopUrl, apiKey: ofertashopKey, webhookSecret: ofertashopWebhook, isEnabled: true, lastSync: null, syncFrequency: 0 });
+    const result = await client.testConnection();
+    setTestResult(result);
+    setTesting(false);
+    if (result.success) {
+      setOfertashopEnabled(true);
+    }
+  };
+
+  const handleImportOffers = async () => {
+    if (!ofertashopUrl || !ofertashopKey) {
+      toast({ title: "Erro", description: "Configure e teste a conexão primeiro.", variant: "destructive" });
+      return;
+    }
+    setImporting(true);
+    setImportProgress(0);
+    try {
+      const client = new OfertashopClient({ apiUrl: ofertashopUrl, apiKey: ofertashopKey, webhookSecret: ofertashopWebhook, isEnabled: true, lastSync: null, syncFrequency: 0 });
+      const interval = setInterval(() => setImportProgress(p => Math.min(p + 10, 90)), 400);
+      const offers = await client.getOffers({ limit: 100 });
+      clearInterval(interval);
+      setImportProgress(100);
+
+      let imported = 0;
+      for (const offer of offers) {
+        try {
+          await dataService.createOffer({
+            name: offer.name,
+            platform: offer.platform || "Ofertashop",
+            category: offer.category || "Geral",
+            original_price: offer.original_price,
+            promotional_price: offer.promotional_price,
+            discount: offer.discount_percentage,
+            affiliate_link: offer.affiliate_link,
+            image_url: offer.image_url,
+            description: offer.description,
+            tags: offer.tags,
+            stock: offer.stock,
+            external_id: offer.external_id,
+            status: "ACTIVE",
+          }, user!.id);
+          imported++;
+        } catch {}
+      }
+
+      const now = new Date().toISOString();
+      setLastSync(now);
+      toast({ title: "Importação concluída!", description: `${imported} ofertas importadas do Ofertashop.` });
+    } catch (err: any) {
+      toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
+    } finally {
+      setImporting(false);
+      setImportProgress(0);
+    }
+  };
+
   const copyWebhook = () => {
-    navigator.clipboard.writeText("https://affiliateai.pro/api/webhook/nova-oferta");
+    const url = `${window.location.origin}/api/webhook/ofertashop`;
+    navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -95,7 +169,6 @@ export default function SettingsPage() {
                 <p className="text-sm font-medium text-foreground">Configuração avançada de IA</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Gerencie provedores, modelos e parâmetros na página dedicada de <strong>Config. de IA</strong> no menu lateral.
-                  Suporte a OpenRouter, OpenAI, Anthropic, Google, Groq, DeepSeek e provedores customizados.
                 </p>
               </div>
             </div>
@@ -106,7 +179,6 @@ export default function SettingsPage() {
               <Input value={apiKey} onChange={(e) => setApiKey(e.target.value)} className="bg-muted border-border h-10 font-mono text-sm" />
               <Button variant="outline" size="sm" className="h-10 px-3 border-border hover:bg-muted"><RefreshCw className="w-3.5 h-3.5" /></Button>
             </div>
-            <p className="text-xs text-muted-foreground">Migre para a nova página de IA para configuração completa</p>
           </div>
         </div>
       ),
@@ -118,7 +190,7 @@ export default function SettingsPage() {
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground">URL do Webhook</Label>
             <div className="flex gap-2">
-              <Input readOnly value="https://affiliateai.pro/api/webhook/nova-oferta" className="bg-muted border-border h-10 font-mono text-xs" />
+              <Input readOnly value={`${window.location.origin}/api/webhook/ofertashop`} className="bg-muted border-border h-10 font-mono text-xs" />
               <Button onClick={copyWebhook} variant="outline" size="sm" className="h-10 px-3 border-border hover:bg-muted flex-shrink-0">
                 {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
               </Button>
@@ -186,67 +258,80 @@ export default function SettingsPage() {
               <span className="text-lg">📦</span>
               <span className="text-sm font-semibold text-foreground">Ofertashop.com.br</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className={`text-xs font-medium px-2 py-1 rounded-full ${ofertashopEnabled ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>
-                {ofertashopEnabled ? "Ativo" : "⏳ Aguardando API"}
-              </span>
-            </div>
+            <span className={`text-xs font-medium px-2 py-1 rounded-full ${ofertashopEnabled ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>
+              {ofertashopEnabled ? "✅ Ativo" : "⏳ Não configurado"}
+            </span>
           </div>
 
-          <div className="p-4 rounded-xl bg-warning/5 border border-warning/20">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-foreground">API ainda não disponível</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  A API do Ofertashop ainda não está disponível. Assim que estiver, você poderá ativar a integração preenchendo os campos abaixo.
-                </p>
-              </div>
+          {lastSync && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Clock className="w-3.5 h-3.5" />
+              Última sincronização: {new Date(lastSync).toLocaleString("pt-BR")}
             </div>
-          </div>
+          )}
 
-          <div className="space-y-3 opacity-50">
+          <div className="space-y-3">
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">URL da API</Label>
-              <Input
-                value={ofertashopUrl}
-                onChange={(e) => setOfertashopUrl(e.target.value)}
-                placeholder="https://api.ofertashop.com.br/v1"
-                disabled={!ofertashopEnabled}
-                className="bg-muted border-border h-10"
-              />
+              <Input value={ofertashopUrl} onChange={(e) => setOfertashopUrl(e.target.value)} placeholder="https://api.ofertashop.com.br/v1" className="bg-muted border-border h-10" />
             </div>
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">Chave da API</Label>
-              <Input
-                value={ofertashopKey}
-                onChange={(e) => setOfertashopKey(e.target.value)}
-                placeholder="os_live_xxxxxxxx"
-                disabled={!ofertashopEnabled}
-                className="bg-muted border-border h-10 font-mono"
-                type="password"
-              />
+              <Input value={ofertashopKey} onChange={(e) => setOfertashopKey(e.target.value)} placeholder="os_live_xxxxxxxx" className="bg-muted border-border h-10 font-mono" type="password" />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Webhook Secret</Label>
-              <Input
-                value={ofertashopWebhook}
-                onChange={(e) => setOfertashopWebhook(e.target.value)}
-                placeholder="whsec_xxxxxxxx"
-                disabled={!ofertashopEnabled}
-                className="bg-muted border-border h-10 font-mono"
-                type="password"
-              />
+              <Label className="text-xs text-muted-foreground">Webhook Secret (opcional)</Label>
+              <Input value={ofertashopWebhook} onChange={(e) => setOfertashopWebhook(e.target.value)} placeholder="whsec_xxxxxxxx" className="bg-muted border-border h-10 font-mono" type="password" />
             </div>
           </div>
 
-          <Button disabled className="w-full" variant="outline">
-            🔒 Ativação disponível quando API estiver pronta
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleTestConnection} disabled={testing || !ofertashopUrl || !ofertashopKey} variant="outline" className="flex-1">
+              {testing ? <><RefreshCw className="w-3.5 h-3.5 mr-1 animate-spin" /> Testando...</> : <><TestTube className="w-3.5 h-3.5 mr-1" /> 🔌 Testar Conexão</>}
+            </Button>
+            <Button onClick={handleImportOffers} disabled={importing || !ofertashopEnabled} className="flex-1 gradient-primary text-white border-0">
+              {importing ? <><RefreshCw className="w-3.5 h-3.5 mr-1 animate-spin" /> Importando...</> : <><Download className="w-3.5 h-3.5 mr-1" /> 📥 Importar Ofertas</>}
+            </Button>
+          </div>
 
-          <p className="text-xs text-muted-foreground text-center">
-            Assim que a API do Ofertashop for disponibilizada, você poderá ativar esta integração com um clique. O sistema já está preparado.
-          </p>
+          {importing && (
+            <div className="w-full bg-muted rounded-full h-2">
+              <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${importProgress}%` }} />
+            </div>
+          )}
+
+          {testResult && (
+            <div className={`p-3 rounded-xl text-sm ${testResult.success ? "bg-success/10 text-success border border-success/20" : "bg-destructive/10 text-destructive border border-destructive/20"}`}>
+              {testResult.success ? "✅ " : "❌ "}{testResult.message}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">🔄 Sincronização Automática</Label>
+            <select value={ofertashopSyncFreq} onChange={(e) => setOfertashopSyncFreq(Number(e.target.value))} className="w-full bg-muted border border-border text-foreground text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary">
+              <option value={15}>A cada 15 minutos</option>
+              <option value={30}>A cada 30 minutos</option>
+              <option value={60}>A cada 1 hora</option>
+              <option value={120}>A cada 2 horas</option>
+              <option value={0}>Desativado</option>
+            </select>
+            {ofertashopSyncFreq > 0 && (
+              <p className="text-xs text-muted-foreground">O sistema verificará automaticamente por novas ofertas ou alterações.</p>
+            )}
+          </div>
+
+          {/* Webhook Config */}
+          <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+            <p className="text-xs font-semibold text-foreground mb-2">🔔 Webhook para Atualizações em Tempo Real</p>
+            <p className="text-xs text-muted-foreground mb-2">Configure esta URL no painel do Ofertashop:</p>
+            <div className="flex gap-2">
+              <Input readOnly value={`${window.location.origin}/api/webhook/ofertashop`} className="bg-muted border-border h-8 font-mono text-xs" />
+              <Button onClick={copyWebhook} variant="outline" size="sm" className="h-8 px-2">
+                {copied ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">⚡ Com o webhook, ofertas serão atualizadas em segundos!</p>
+          </div>
         </div>
       ),
     },
@@ -259,38 +344,16 @@ export default function SettingsPage() {
               <span className="text-lg">📷</span>
               <span className="text-sm font-semibold text-foreground">Instagram Graph API</span>
             </div>
-            <span className="text-xs font-medium px-2 py-1 rounded-full bg-warning/10 text-warning">
-              ⏳ Aguardando Configuração
-            </span>
+            <span className="text-xs font-medium px-2 py-1 rounded-full bg-warning/10 text-warning">⏳ Aguardando Configuração</span>
           </div>
-          <div className="p-4 rounded-xl bg-warning/5 border border-warning/20">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-foreground">Publique diretamente no Instagram</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Conecte sua conta Business ou Creator do Instagram para publicar posts, Reels e Stories diretamente do sistema.
-                </p>
-              </div>
-            </div>
+          <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+            <p className="text-xs text-muted-foreground">
+              Configure o método de publicação na página <strong>📤 Publicação</strong> no menu lateral. Escolha entre API Oficial, Automação ou Modo Manual.
+            </p>
           </div>
-          <div className="space-y-3 opacity-50">
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Client ID (Facebook App)</Label>
-              <Input disabled placeholder="Será configurado futuramente" className="bg-muted border-border h-10" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Instagram Business ID</Label>
-              <Input disabled placeholder="Será detectado automaticamente" className="bg-muted border-border h-10" />
-            </div>
-          </div>
-          <Button disabled className="w-full" variant="outline">
-            🔒 Conectar Instagram (em breve)
-          </Button>
           <div className="text-xs text-muted-foreground space-y-1">
             <p>📌 <strong>Requisitos:</strong> Conta Business ou Creator + Página do Facebook</p>
             <p>📊 <strong>Limites:</strong> 200 requisições/hora, 50 publicações/hora</p>
-            <p>📅 <strong>Agendamento:</strong> Até 75 dias no futuro</p>
           </div>
         </div>
       ),
@@ -304,38 +367,16 @@ export default function SettingsPage() {
               <span className="text-lg">💬</span>
               <span className="text-sm font-semibold text-foreground">WhatsApp Business API</span>
             </div>
-            <span className="text-xs font-medium px-2 py-1 rounded-full bg-warning/10 text-warning">
-              ⏳ Aguardando Configuração
-            </span>
+            <span className="text-xs font-medium px-2 py-1 rounded-full bg-warning/10 text-warning">⏳ Aguardando Configuração</span>
           </div>
-          <div className="p-4 rounded-xl bg-warning/5 border border-warning/20">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-foreground">Envie ofertas via WhatsApp</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Conecte sua conta WhatsApp Business para enviar mensagens e ofertas diretamente para clientes e grupos.
-                </p>
-              </div>
-            </div>
+          <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+            <p className="text-xs text-muted-foreground">
+              Configure o método de envio na página <strong>📤 Publicação</strong> no menu lateral. Escolha entre API Oficial, WhatsApp Web ou Modo Manual.
+            </p>
           </div>
-          <div className="space-y-3 opacity-50">
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Account SID (Twilio)</Label>
-              <Input disabled placeholder="Será configurado futuramente" className="bg-muted border-border h-10 font-mono" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Número WhatsApp Business</Label>
-              <Input disabled placeholder="+55 11 99999-9999" className="bg-muted border-border h-10" />
-            </div>
-          </div>
-          <Button disabled className="w-full" variant="outline">
-            🔒 Conectar WhatsApp Business (em breve)
-          </Button>
           <div className="text-xs text-muted-foreground space-y-1">
             <p>📌 <strong>Requisitos:</strong> Conta WhatsApp Business verificada</p>
             <p>📝 <strong>Importante:</strong> Primeiro contato exige template aprovado</p>
-            <p>⏰ <strong>Janela:</strong> 24 horas para respostas livres após contato do cliente</p>
           </div>
         </div>
       ),
