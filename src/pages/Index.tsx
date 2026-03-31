@@ -12,6 +12,7 @@ import SettingsPage from "@/components/SettingsPage";
 import CalendarPage from "@/components/CalendarPage";
 import NicheMappingPage from "@/components/NicheMappingPage";
 import AISettingsPage from "@/components/AISettingsPage";
+import PublishingConfigPage from "@/components/PublishingConfigPage";
 import { Offer } from "@/components/OffersPage";
 
 export default function Index() {
