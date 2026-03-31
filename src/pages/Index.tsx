@@ -59,6 +59,7 @@ export default function Index() {
       case "campanhas": return <CampaignsPage />;
       case "analytics": return <AnalyticsPage />;
       case "ai-settings": return <AISettingsPage />;
+      case "publicacao": return <PublishingConfigPage />;
       case "configuracoes": return <SettingsPage />;
       default: return <DashboardPage />;
     }
