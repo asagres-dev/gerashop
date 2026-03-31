@@ -31,7 +31,7 @@ export interface OfertashopOffer {
   promotional_price: number;
   discount_percentage?: number;
   affiliate_link: string;
-  image_url?: string;
+  image_urls?: string[];
   description?: string;
   tags?: string[];
   stock?: number;
@@ -66,7 +66,7 @@ export class OfertashopClient {
       return { success: false, message: "URL da API e Chave são obrigatórias." };
     }
     try {
-      const response = await fetch(`${this.config.apiUrl}/health`, {
+      const response = await fetch(`${this.config.apiUrl}`, {
         headers: { "X-API-Key": this.config.apiKey },
         signal: AbortSignal.timeout(10000),
       });
